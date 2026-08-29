@@ -1,0 +1,98 @@
+#!/usr/bin/env bash
+#
+# Permanence people-rule guard (pre-commit)
+# -------------------------------------
+# Flags staged Markdown additions whose phrasing lexically resembles a
+# "Writing about people" breach (see README → "Writing about people"):
+#   - protected-characteristic-linked judgement
+#   - fixed-character verdicts
+#   - person-directed coarse character attacks
+#
+# Scope on purpose: this guards the PEOPLE rule, where a breach that reaches a
+# commit also reaches git history (a DSAR / grievance / disclosure covers
+# `git log -p`, not just HEAD). It deliberately does NOT flag voice / work-coarse
+# phrasing — that rule is low-stakes and fixed in place.
+#
+# It is a heuristic prompt to eyeball the wording, not a guarantee. A confirmed
+# false positive or an intended verbatim quote passes with:
+#     git commit --no-verify
+#
+# Activated via:  git config core.hooksPath .githooks
+
+set -uo pipefail
+
+# Phrase-based patterns — built to avoid bare technical nouns (e.g. "race
+# condition", "Public Liability", "age" in a date). Case-insensitive.
+patterns=(
+  # --- protected-characteristic-linked judgement ---
+  'because (he|she|they)( ?'\''s| is| are| was| were)?[^.]{0,30}\b(a |an )?(woman|man|girl|boy|lad|old|young|gay|lesbian|trans|disabled|pregnant|foreign|immigrant)\b'
+  '\btoo (old|young) (to|for|and|now)\b'
+  '\bfor (his|her|their) age\b'
+  '\b(typical|classic) (woman|man|bloke|girl|lad)\b'
+  '\b(maternity|paternity|pregnan\w+) (made|meant|excuse|problem|issue)'
+  '\b(his|her|their) (religion|faith|disability|accent|background) (made|means?|is why|explains)'
+  # --- fixed-character verdicts ---
+  '\b(he|she|they)( ?'\''s| is| are| was| were) (just )?(a |an )?(lazy|useless|incompetent|difficult|toxic|hopeless|stupid)\b'
+  '\balways been (lazy|difficult|useless|incompetent|toxic|hopeless|unreliable|like (this|that))\b'
+  '\bnever going to (change|learn|get it)\b'
+  '\bthat'\''s (just )?who (he|she|they) (is|are)\b'
+  '\b(personality|character) (flaw|defect|problem|issue)\b'
+  '\bby nature\b'
+  # --- person-directed coarse character attacks ---
+  '\b(is|was|being|such|a real) (a |an )?(idiot|moron|imbecile|liar|fraud|snake|coward|narcissist|sociopath|psychopath|clown)\b'
+  '\b(incompetent|spineless|clueless|gutless|two-faced|backstabbing|deceitful|dishonest)\b'
+)
+
+file=""
+flagged=0
+
+while IFS= read -r line; do
+  case "$line" in
+    '+++ b/'*)
+      file="${line#+++ b/}"
+      ;;
+    '+++ '*)
+      file=""   # /dev/null or other
+      ;;
+    '+'*)
+      [ -z "$file" ] && continue
+      # Skip files that legitimately hold the rule text + examples.
+      case "$file" in
+        README.md|*/README.md|.githooks/*) continue ;;
+      esac
+      content="${line#+}"
+      for p in "${patterns[@]}"; do
+        if printf '%s' "$content" | grep -qiE "$p"; then
+          if [ "$flagged" -eq 0 ]; then
+            printf '\n⚠️  Permanence people-rule guard — staged phrasing to review:\n\n' >&2
+          fi
+          printf '  %s\n    %s\n    ↳ matched: %s\n\n' "$file" "$content" "$p" >&2
+          flagged=1
+          break
+        fi
+      done
+      ;;
+  esac
+done < <(git diff --cached --unified=0 --no-color -- '*.md')
+
+if [ "$flagged" -eq 1 ]; then
+  cat >&2 <<'EOF'
+This phrasing may cross the "Writing about people" line — a protected
+characteristic, a fixed-character verdict, or a person-directed attack.
+Because it would also land in git history (a DSAR / disclosure covers the
+history, not just the current file), apply the reframe before committing:
+
+  • Fact / inference split — record observable behaviour + its work impact as
+    fact; record your read of *why* as a dated, provisional inference.
+  • Behaviour, not identity — conduct and work only; never protected
+    characteristics or fixed-character verdicts.
+
+If this is a false positive or an intended verbatim quote, re-run with:
+
+  git commit --no-verify
+
+EOF
+  exit 1
+fi
+
+exit 0

@@ -1,0 +1,99 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Syntax-check every shell script
+        run: |
+          set -e
+          for f in $(find . -name "*.sh" -not -path "./.git/*") .githooks/pre-commit .githooks/post-commit; do
+            echo "checking $f"
+            bash -n "$f"
+          done
+
+      - name: Compile-check every embedded Python heredoc / script
+        run: |
+          set -e
+          python3 -m py_compile runtime/search/perma-search.py
+          # extract each `<<'PY' ... PY` block per shell script and compile-check it
+          for f in $(find . -name "*.sh" -not -path "./.git/*"); do
+            awk '/<<.PY/{flag=1;next} /^PY$/{flag=0} flag' "$f" > /tmp/_heredoc_check.py
+            if [ -s /tmp/_heredoc_check.py ]; then
+              echo "checking embedded python in $f"
+              python3 -m py_compile /tmp/_heredoc_check.py
+            fi
+          done
+
+      - name: ShellCheck
+        run: |
+          shellcheck --severity=warning $(find . -name "*.sh" -not -path "./.git/*") .githooks/pre-commit .githooks/post-commit
+
+  install-matrix:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Prepare a scratch Permanence checkout (its own git repo, so install.sh's rev-parse works)
+        shell: bash
+        run: |
+          set -e
+          SCRATCH="${RUNNER_TEMP}/permanence-scratch"
+          cp -R "${GITHUB_WORKSPACE}" "$SCRATCH"
+          rm -rf "$SCRATCH/.git"
+          git -C "$SCRATCH" init -q
+          git -C "$SCRATCH" config user.email "ci@example.com"
+          git -C "$SCRATCH" config user.name "CI"
+          git -C "$SCRATCH" add -A
+          git -C "$SCRATCH" commit -q -m "ci scratch checkout"
+          echo "PERMA_DIR=$SCRATCH" >> "$GITHUB_ENV"
+
+      - name: Run install.sh
+        shell: bash
+        run: bash "${PERMA_DIR}/runtime/install.sh"
+
+      - name: Verify commands were installed
+        shell: bash
+        run: |
+          set -e
+          test -f "$HOME/.claude/commands/perma-startup.md"
+          test -f "$HOME/.claude/commands/perma-shutdown.md"
+          test -f "$HOME/.claude/commands/perma-upgrade.md"
+          echo "commands installed OK"
+
+      - name: Verify the scheduled task actually exists (real backend for this OS)
+        shell: bash
+        run: |
+          set -e
+          case "$RUNNER_OS" in
+            Linux)
+              crontab -l | grep -q "# perma-consolidate" && echo "cron: OK" ;;
+            macOS)
+              launchctl list | grep -q "com.$(id -un).perma-consolidate" && echo "launchd: OK" ;;
+            Windows)
+              schtasks /Query /TN "perma-consolidate" && echo "schtasks: OK" ;;
+          esac
+
+      - name: Verify unschedule_task cleans it up again
+        shell: bash
+        run: |
+          set -e
+          source "${PERMA_DIR}/runtime/schedule-task.sh"
+          unschedule_task "perma-consolidate"
+          case "$RUNNER_OS" in
+            Linux)   ! crontab -l 2>/dev/null | grep -q "# perma-consolidate" ;;
+            macOS)   ! launchctl list 2>/dev/null | grep -q "com.$(id -un).perma-consolidate" ;;
+            Windows) ! schtasks /Query /TN "perma-consolidate" >/dev/null 2>&1 ;;
+          esac
+          echo "unschedule: OK"

@@ -1,0 +1,15 @@
+# perma-search local semantic layer — fully local, ZERO API.
+#
+# REQUIRED:
+#   chromadb → the vector store + its built-in ONNX MiniLM-L6 embedder (the DEFAULT). MiniLM is
+#              fetched from Chroma's own S3, NOT Hugging Face, so it works in HF-blocked envs.
+#              This alone is everything perma-search needs.
+chromadb>=1.5
+#
+# OPTIONAL — only to opt into a stronger embedder via PERMA_SEARCH_MODEL, AFTER a bake-off shows it
+# beats MiniLM on your notes:
+#   fastembed → loads models like bge-small-en-v1.5. CAVEAT: it reaches Hugging Face FIRST. In an
+#               HF-blocked env, get the model from the BAAI mirror (model.baai.ac.cn), place it
+#               locally, point PERMA_SEARCH_MODEL at the path + set HF_HUB_OFFLINE=1. (Or run Ollama
+#               for bge-m3 — its own registry, no HF.) Uncomment to install:
+# fastembed>=0.3

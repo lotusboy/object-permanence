@@ -1,0 +1,36 @@
+---
+description: Register an existing project as a Permanence stream — read its README, create the stream (seeded from the README), and add it to the registry. Use when the owner says "register this project", "register <path>", or passes a path to a README.
+---
+
+# /perma-register — turn an existing project into a Permanence stream
+
+Argument: `$ARGUMENTS` — a path to the project folder **or its README** (if empty, use the current working directory). The owner typically says *"register this project, here's the README: <path>"*.
+
+**Read-only on the project. The ONLY things this writes are the new stream + one registry row, both inside `~/permanence`.** Never write anything into the project repo (one-way flow).
+
+## Steps
+
+0. **Refuse container folders.** If the resolved path is a home directory, `/`, `/Users`, or the bare `Desktop` / `Documents` / `Downloads` root, **stop and do not register it** — say so plainly and explain: a session opened without its working folder set lands in the home folder, so registering that would make every such session load a meaningless stream and the wind-down would start writing state into it. Tell them to set the session's working folder to the project's own folder and re-run. *(A folder **inside** `Documents` is fine — it's the container roots that are wrong.)*
+
+1. **Resolve the project + its README.** From `$ARGUMENTS`: a README file → the project root is its directory; a directory → find its README (`README.md`, `readme`, etc.); empty → use the current directory. State the project root you resolved. *(No README and none findable? Skip to step 2 using whatever the owner described — a stream can be seeded from a plain description.)*
+
+2. **Understand the project — README-level, not a deep dive.** Read the README (skim the top-level layout / `package.json` / `pyproject` only if quick). Enough to write an honest one-paragraph "what it is" + a read of its current state.
+
+3. **Propose a stream name, then confirm.** Suggest a stream path — `<area>/<slug>` (e.g. `home/<slug>`, `work/<slug>`) or just `<slug>`, derived from the project name. Ask one plain question: *"Register it as `<stream>`? (or tell me a different name/area.)"* Don't proceed until the owner confirms. If the project's path is **already** in `_meta/REGISTRY.md`, say so and offer to refresh the existing stream instead of duplicating.
+
+4. **Create the stream** at `~/permanence/<stream>/` (use `~/permanence/templates/` skeletons if present; otherwise write the canonical files directly):
+   - `PROJECT.md` — `> Last updated <today>` header, a "What it is" paragraph, current phase/state as best read from the README, and an "Open" section for anything it flags as TODO/roadmap.
+   - `LOG.md` — one dated entry: *"Stream created + registered from `<project path>`."*
+   - `QUESTIONS.md`, `PEOPLE.md` — light skeletons, ready to grow.
+   Write in the owner's voice as far as the README reveals it; gentle, accurate register. **Capture the *shape* + state, never a wholesale dump of the project's contents.**
+
+5. **Register it.** Append a row to `~/permanence/_meta/REGISTRY.md`: `| <project absolute path> | <stream> | <one-line note> |`. Keep the longest-prefix ordering note intact.
+
+6. **Commit** the new stream + the registry row in `~/permanence` as one commit (`register <stream> from <project>`).
+
+7. **Confirm.** Tell the owner: the stream is at `~/permanence/<stream>`, registered to `<path>` — **next time they open that project, Permanence loads its context automatically.** Suggest they just start talking to Claude about the project to grow the stream.
+
+## Guardrails
+- Read-only on the project; writes only inside `~/permanence`.
+- README-level understanding only — don't trawl the whole codebase.
+- Never copy confidential project content wholesale; capture the shape + current state.

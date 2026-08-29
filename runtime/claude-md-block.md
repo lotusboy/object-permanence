@@ -1,0 +1,4 @@
+<!-- perma:begin (managed by ~/permanence/runtime/install.sh — edit ~/permanence/runtime/claude-md-block.md, not here) -->
+## Permanence protocol (fallback for environments without SessionStart hooks)
+At session start, run or read the output of `~/permanence/runtime/session-start.sh` and follow its instructions: it resolves the current directory through `~/permanence/_meta/REGISTRY.md` and says which Permanence stream (if any) to load. In Claude Code this happens automatically via the SessionStart hook; this note covers Claude Desktop/Cowork.
+<!-- perma:end -->

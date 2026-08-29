@@ -1,0 +1,68 @@
+# Permanence — a starter
+
+Your **externalised working memory**, in plain markdown + git, maintained with Claude Code. It holds the state of your ongoing projects — what's happening, who's involved, what's decided, what's open — in files that survive across sessions and days, so you (and Claude) can pick up exactly where you left off instead of rebuilding context every time.
+
+It's the same system the author runs daily; this is the machinery and the conventions, with **none of their content** and a worked example in a far domain (home decorating/DIY) so you can see it in action.
+
+> **Just been sent this?** Unzip it, open the folder in Claude Code (or your AI coding tool), and say:
+> *"Read README.md and QUICKSTART.md, then set this Permanence up for me."*
+> It'll walk the steps. (Or read `QUICKSTART.md` yourself — about 10 minutes.) Nothing here phones home; it's plain files + local scripts.
+
+---
+
+## What's in here
+
+| Path | What it is |
+|---|---|
+| `runtime/` | the machinery — `session-start.sh` (loads the right context per workspace), `generate-contents.sh`, `install.sh`, `nightly-consolidate.sh`, `schedule-task.sh` (cross-platform scheduling), `claude-md-block.md` + `agents-md-block.md`, and `commands/` (the `/perma-*` commands: help, brief, startup, shutdown, consolidate, consolidate-review, contents, orchestrate, register, register-group, upgrade). **Opt-in extras** (install prints how): cross-project **events** (`/perma-emit`), local semantic **search** (`/perma-search`, `runtime/search/`), and a weekly **cognitive-debt scan** (`cogdebt-scan.sh`). |
+| `.githooks/` | a **people-rule pre-commit guard** + a post-commit inventory refresh |
+| `SPEC.md` | the system, harness-independently — data model, invariants, runtime contract |
+| `docs/` | [`UPGRADE.md`](./docs/UPGRADE.md) (the `/perma-upgrade` walkthrough) and [`OTHER-TOOLS.md`](./docs/OTHER-TOOLS.md) (using Permanence with something other than Claude Code) |
+| `templates/` | blank skeletons for the canonical files |
+| `example/` | a **fictional** populated Permanence (home decorating/DIY) showing the shape + each mechanism in action. **Delete `example/` once your own streams are going.** |
+| `_meta/REGISTRY.md` | maps each of your project folders → Permanence stream it should load (you fill this in) |
+
+> New here, or forgotten what's available? **`/perma-help`** lists every command and shows which background pieces are actually switched on for your machine.
+
+## The shape
+
+A **stream** is one ongoing concern — a project, an area of life — in its own folder, holding a few canonical files:
+- `PROJECT.md` — current state (carries a `Last updated` date)
+- `LOG.md` — chronological notes, **append-only** (newest first)
+- `PEOPLE.md` — who's involved + how to work with them
+- `QUESTIONS.md` — open questions (close with `[CLOSED YYYY-MM-DD]`, don't delete)
+- (`STRATEGY.md`, `README.md` as needed)
+
+A folder is a stream **iff it has a `PROJECT.md`** — that's what the tooling discovers. (See `example/home/bathroom` and `example/home/kitchen`.)
+
+## The four conventions (the real value)
+
+1. **The people-rule.** Notes on people: observable behaviour + impact as *fact*; your read of *why* as a dated, provisional *inference* you revisit; conduct, never fixed character; written as if they'll read it. (The pre-commit guard nudges you if a commit's wording slips.) See `example/home/kitchen/PEOPLE.md`.
+2. **Append, don't rewrite.** LOGs grow; questions close with markers, not deletion. The history is the value.
+3. **One-way flow.** Permanence reads your project context; project repos never reference Permanence. Keeps private notes out of shared/published code.
+4. **Gentle, accurate register.** Blunt thinking is fine in your head; what gets *written down* is rendered kindly and precisely — same meaning, safer key.
+
+## The loops
+
+- **Write / read** — you (and Claude) update streams as things move; the session-start hook loads the right stream when you open a project.
+- **Consolidate** (`/perma-consolidate` → `/perma-consolidate-review`) — a periodic tidy: catches stale PROJECTs, closes aged inferences, dedupes. See `example/.consolidation/REPORT-example.md`.
+- **Orchestrate** (`/perma-orchestrate`) — finds ideas converging across streams you didn't connect. See `example/_meta/emergent.md`. (Only useful once you have a few streams — ignore it at first.)
+
+## Optional extras (opt-in — `install.sh` prints how to switch each on; skip until you want them)
+
+- **Events** (`/perma-emit`) — when you've two projects open, one can flag something material to the *other's* Claude (a decision, a blocker), agent-to-agent. Emitting works out of the box; *receiving* is two machine-wide hooks you enable deliberately: a **UserPromptSubmit** hook surfaces waiting messages on the other session's next prompt, and a **Stop** hook catches a message that lands *mid-turn* — right as that session would go idle — and has it read them before stopping. Both are free (a local file read; they cost a turn only when there's actually a message) and share one cursor, so each message arrives once. Pub/sub: the sender never sees its own event. *(Truly-idle wake — with no user turn at all — needs an external nudge; see SPEC.)*
+- **Programme groups** (`_meta/GROUPS.md`) — for **one owner spanning several of their own repos** (e.g. related internal assets you personally work across), a group says "these repos report into that shared folder", so winding down in *any* of them refreshes one plan-and-status trail written for someone outside the work (a programme manager or director). Only the pointer lives in Permanence; the procedure lives in the target repo. **Not a substitute for team collaboration across separate laptops** — the update lock is per-clone and `members` are read via local `git log`, so it cannot coordinate two different people's machines; it needs every member repo checked out where the update runs. Run **`/perma-register-group`** to set one up: it adds the rows and scaffolds the folder from `templates/programme-task-doc.md`. The report shape and RAG rules in that template are **fixed across all groups** (versioned `REPORT SPEC v1`) so one reader can scan many programmes side by side and have each word mean the same thing; roles, phases and document names are yours to set. Leave `GROUPS.md`'s example rows alone and nothing happens — `/perma-shutdown` skips the step silently.
+- **Semantic search** (`/perma-search`) — find notes by *meaning* across all streams when keyword-`grep` misses paraphrases. Local embeddings, nothing leaves the machine; the markdown stays the source of truth (it just points you at the right file).
+- **Cognitive-debt scan** (`cogdebt-scan.sh`) — a weekly local check on an AI-built repo (bus-factor, AI-authored %, doc-to-code, biggest file); when something crosses a line it *emits an event* so you're nudged to act. No model/API.
+
+These are deliberately off by default — the core (streams + the loops above) is the whole point; reach for these when you feel the specific need.
+
+## Staying current
+
+The machinery improves over time. To pull the latest **without** disturbing your own streams or notes, run **`/perma-upgrade`** any time — `runtime/.update-source` is already pointed at the public template on a fresh clone, so there's no setup step unless you're on a private fork (in which case, point it at that instead). It shows you what's changing before anything happens, negotiates any file you've customized that the release also touched, and proposes (never silently applies) anything from `CHANGELOG.md` that might affect your own streams — see [docs/UPGRADE.md](./docs/UPGRADE.md) for the full walkthrough. Everything lands as a normal, revertable commit in your Permanence's own history.
+
+## Get going
+
+See **[QUICKSTART.md](./QUICKSTART.md)**.
+
+> Fully automated on **Claude Code** (the `/perma-*` commands, the SessionStart hook); works with other AI coding tools too (Devin, Google Antigravity, Cursor, and anything reading the `AGENTS.md` standard), automated where the tool supports a global config file, manual otherwise — see [docs/OTHER-TOOLS.md](./docs/OTHER-TOOLS.md). `SPEC.md` separates the harness-independent contract from any binding. Built on the **axis-engineering** methodology (a separate, public companion — optional).

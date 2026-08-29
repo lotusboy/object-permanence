@@ -1,0 +1,65 @@
+#!/bin/bash
+# Permanence session-start: emits context for the Claude Code SessionStart hook.
+# All logic lives here, in Permanence — the hook entry in settings.json is just this path.
+# Output contract: short instructions (the session then Reads the files itself);
+# never dump file contents into context from here.
+
+PERMA="${PERMA_DIR:-$HOME/permanence}"
+REG="$PERMA/_meta/REGISTRY.md"
+CWD="$(pwd -P)"
+
+[ -d "$PERMA" ] || exit 0   # no Permanence on this machine — stay silent
+
+# --- consolidation lock check (writer-side guard, hardening item 4) ---
+LOCK="$PERMA/.perma-lock"
+if [ -f "$LOCK" ]; then
+  NOW=$(date +%s)
+  LOCK_TS=$(head -n1 "$LOCK" 2>/dev/null)
+  case "$LOCK_TS" in (*[!0-9]*|"") LOCK_TS=0;; esac
+  AGE_MIN=$(( (NOW - LOCK_TS) / 60 ))
+  if [ "$AGE_MIN" -gt 240 ]; then
+    echo "[perma] STALE consolidation lock: .perma-lock is ${AGE_MIN}m old (>4h limit). Tell the owner; it is safe to remove after confirming no consolidation review is genuinely running."
+  else
+    echo "[perma] CONSOLIDATION IN PROGRESS: .perma-lock present (${AGE_MIN}m old). Do not edit, commit, or branch in ~/permanence until it is released — read-only access is fine."
+  fi
+fi
+
+# --- registry lookup: longest-prefix match of CWD against registered paths ---
+BEST_PATH=""
+BEST_STREAM=""
+while IFS='|' read -r _ ws stream _; do
+  ws=$(echo "$ws" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+  stream=$(echo "$stream" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+  case "$ws" in (/*) ;; (*) continue;; esac          # only path rows
+  case "$CWD" in
+    ("$ws"|"$ws"/*)
+      if [ ${#ws} -gt ${#BEST_PATH} ]; then BEST_PATH="$ws"; BEST_STREAM="$stream"; fi
+      ;;
+  esac
+done < "$REG"
+
+if [ -z "$BEST_STREAM" ]; then
+  # Is this a container folder rather than a project? A session opened without its working folder set
+  # lands in $HOME, and registering THAT as a stream is the classic wrong turn: every home-defaulted
+  # session then loads a meaningless "stream" and the wind-down starts writing state into it. So for
+  # these paths, never offer registration — tell them to point the session at the project instead.
+  case "$CWD" in
+    "$HOME"|"$HOME"/|/|/Users|/home|"$HOME"/Desktop|"$HOME"/Documents|"$HOME"/Downloads)
+      echo "[perma] This session's working folder is $CWD — a home/container folder, not a project. Perma-meta is available (/perma-brief, /perma-contents). Do NOT offer to register this path as a stream: set the session's working folder to the project's own folder first, then register that. If the owner asks to register, explain this rather than proceeding."
+      exit 0
+      ;;
+  esac
+  echo "[perma] This workspace ($CWD) is NOT registered in ~/permanence/_meta/REGISTRY.md. Perma-meta remains available (/perma-brief, /perma-contents full). If this looks like real project work, offer the owner ONCE to register it (one row: path -> stream; new stream folders need at least README/PROJECT/LOG per ~/permanence/README.md). Do not load any customer stream content unprompted."
+  exit 0
+fi
+
+if [ "$BEST_STREAM" = "perma-meta" ]; then
+  echo "[perma] Perma-meta context (registry: $BEST_PATH). No customer stream loads here. /perma-brief, /perma-consolidate, /perma-orchestrate, /perma-contents are available; Permanence root is ~/permanence."
+  exit 0
+fi
+
+STREAM_DIR="$PERMA/$BEST_STREAM"
+echo "[perma] Registered stream for this workspace: $BEST_STREAM ($STREAM_DIR)"
+echo "[perma] At session start, read the stream's operational files now: PROJECT.md and QUESTIONS.md, plus STRATEGY.md / PEOPLE.md if present, and the most recent entries of LOG.md (tail, not full history)."
+echo "[perma] Standing rule: this stream is the owner's externalised working memory. Update it whenever something material shifts (meetings, decisions, scope changes, Slack exchanges that move the picture) — without being asked. Never copy Permanence content or paths into team-facing artefacts or project repos (one-way flow). Anything persisted to Permanence is written in a gentle, accurate register."
+exit 0
