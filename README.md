@@ -23,6 +23,8 @@ A **stream** is one ongoing concern — a project, an area of life — in its ow
 
 A folder is a stream **iff it has a `PROJECT.md`** — that's what the tooling discovers. (See `example/home/bathroom` and `example/home/kitchen`.)
 
+**Turning a project into a stream — `/perma-register`.** Say *"register this project"* (point it at the README if there is one) and Claude creates the stream, seeds it from the README, and adds one row to `_meta/REGISTRY.md`. That's the whole setup — no manual file-wrangling. You don't even have to remember to do it: open a new, unregistered project and start doing real work, and Claude will notice and offer to register it, once — you'll never be nagged twice about the same folder.
+
 ## The four conventions (the real value)
 
 1. **The people-rule.** Notes on people: observable behaviour + impact as *fact*; your read of *why* as a dated, provisional *inference* you revisit; conduct, never fixed character; written as if they'll read it. (The pre-commit guard nudges you if a commit's wording slips.) See `example/home/kitchen/PEOPLE.md`.
