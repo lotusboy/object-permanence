@@ -6,6 +6,67 @@ on:
   pull_request:
 
 jobs:
+  markdown-lint:
+    name: Markdown Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: DavidAnson/markdownlint-cli2-action@v18
+        with:
+          globs: |
+            README.md
+            QUICKSTART.md
+            SPEC.md
+            CHANGELOG.md
+            docs/**/*.md
+
+  link-check:
+    name: Link Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: lycheeverse/lychee-action@v2
+        with:
+          args: >-
+            --no-progress
+            --verbose
+            README.md
+            QUICKSTART.md
+            SPEC.md
+            CHANGELOG.md
+            docs/*.md
+          fail: true
+
+  redaction-scan:
+    name: Redaction Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Scan for accidentally-personal content
+        run: |
+          set -euo pipefail
+          FILES=$(git ls-files '*.md' '*.sh' '*.py' '*.txt' ':!:example/**')
+          FAIL=0
+
+          # the pre-rebrand machine username this project's history involved — should never appear
+          if grep -nF "sloftus" $FILES; then
+            echo "Found a stale 'sloftus' username reference"; FAIL=1
+          fi
+
+          # email addresses, excluding the known-safe ones this repo legitimately uses
+          if grep -nE '[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}' $FILES \
+              | grep -vE 'ci@example\.com|users\.noreply\.github\.com|@fsf\.org'; then
+            echo "Found an email address outside the allow-list"; FAIL=1
+          fi
+
+          # common secret/API-key shapes
+          if grep -nE '(AKIA[0-9A-Z]{16}|sk-[a-zA-Z0-9]{20,}|ghp_[a-zA-Z0-9]{36})' $FILES; then
+            echo "Found a string matching a known API-key pattern"; FAIL=1
+          fi
+
+          if [ "$FAIL" -eq 0 ]; then echo "Redaction scan passed"; fi
+          exit $FAIL
+
   lint:
     runs-on: ubuntu-latest
     steps:
