@@ -1,28 +1,16 @@
 # Permanence — a starter
 
-Your **externalised working memory**, in plain markdown + git, maintained with Claude Code. It holds the state of your ongoing projects — what's happening, who's involved, what's decided, what's open — in files that survive across sessions and days, so you (and Claude) can pick up exactly where you left off instead of rebuilding context every time.
+You close the laptop, come back tomorrow, and your AI coding assistant remembers nothing — not the decision you made, not why you ruled out the other approach, not who's waiting on what. So you spend the first ten minutes of every session re-explaining the project to it, or you don't, and it quietly repeats a mistake you already fixed once.
 
-It's the same system the author runs daily; this is the machinery and the conventions, with **none of their content** and a worked example in a far domain (home decorating/DIY) so you can see it in action.
+**Permanence is the fix**: your externalised working memory, in plain markdown + git. It holds the state of your ongoing projects — what's happening, who's involved, what's decided, what's open — in files that survive across sessions and days, so you (and Claude) pick up exactly where you left off instead of rebuilding context every time.
+
+This isn't a demo. It's the author's actual daily driver, and it holds up under real weight: **14 concurrent project streams** tracked side by side — consulting work, internal programmes, personal projects — with one single stream alone carrying **11,000+ lines of chronological history across nearly 500 dated entries**, built up entirely through ordinary daily conversation with Claude, no special effort. Several streams run 100–200+ line `PEOPLE.md` files, actually applying the fact/inference discipline below to real working relationships over months, not a one-off example. This repo ships with **none of that** — just the machinery and conventions, plus a worked example in a far domain (home decorating/DIY) so you can see the shape in action without anyone's real project spilling into a public template.
 
 > **Just been sent this?** Unzip it, open the folder in Claude Code (or your AI coding tool), and say:
 > *"Read README.md and QUICKSTART.md, then set this Permanence up for me."*
 > It'll walk the steps. (Or read `QUICKSTART.md` yourself — about 10 minutes.) Nothing here phones home; it's plain files + local scripts.
 
 ---
-
-## What's in here
-
-| Path | What it is |
-|---|---|
-| `runtime/` | the machinery — `session-start.sh` (loads the right context per workspace), `generate-contents.sh`, `install.sh`, `nightly-consolidate.sh`, `schedule-task.sh` (cross-platform scheduling), `claude-md-block.md` + `agents-md-block.md`, and `commands/` (the `/perma-*` commands: help, brief, startup, shutdown, consolidate, consolidate-review, contents, orchestrate, register, register-group, upgrade). **Opt-in extras** (install prints how): cross-project **events** (`/perma-emit`), local semantic **search** (`/perma-search`, `runtime/search/`), and a weekly **cognitive-debt scan** (`cogdebt-scan.sh`). |
-| `.githooks/` | a **people-rule pre-commit guard** + a post-commit inventory refresh |
-| `SPEC.md` | the system, harness-independently — data model, invariants, runtime contract |
-| `docs/` | [`UPGRADE.md`](./docs/UPGRADE.md) (the `/perma-upgrade` walkthrough) and [`OTHER-TOOLS.md`](./docs/OTHER-TOOLS.md) (using Permanence with something other than Claude Code) |
-| `templates/` | blank skeletons for the canonical files |
-| `example/` | a **fictional** populated Permanence (home decorating/DIY) showing the shape + each mechanism in action. **Delete `example/` once your own streams are going.** |
-| `_meta/REGISTRY.md` | maps each of your project folders → Permanence stream it should load (you fill this in) |
-
-> New here, or forgotten what's available? **`/perma-help`** lists every command and shows which background pieces are actually switched on for your machine.
 
 ## The shape
 
@@ -56,6 +44,20 @@ A folder is a stream **iff it has a `PROJECT.md`** — that's what the tooling d
 - **Cognitive-debt scan** (`cogdebt-scan.sh`) — a weekly local check on an AI-built repo (bus-factor, AI-authored %, doc-to-code, biggest file); when something crosses a line it *emits an event* so you're nudged to act. No model/API.
 
 These are deliberately off by default — the core (streams + the loops above) is the whole point; reach for these when you feel the specific need.
+
+## What's in here
+
+| Path | What it is |
+|---|---|
+| `runtime/` | the machinery — `session-start.sh` (loads the right context per workspace), `generate-contents.sh`, `install.sh`, `nightly-consolidate.sh`, `schedule-task.sh` (cross-platform scheduling), `claude-md-block.md` + `agents-md-block.md`, and `commands/` (the `/perma-*` commands: help, brief, startup, shutdown, consolidate, consolidate-review, contents, orchestrate, register, register-group, upgrade). **Opt-in extras** (install prints how): cross-project **events** (`/perma-emit`), local semantic **search** (`/perma-search`, `runtime/search/`), and a weekly **cognitive-debt scan** (`cogdebt-scan.sh`). |
+| `.githooks/` | a **people-rule pre-commit guard** + a post-commit inventory refresh |
+| `SPEC.md` | the system, harness-independently — data model, invariants, runtime contract |
+| `docs/` | [`UPGRADE.md`](./docs/UPGRADE.md) (the `/perma-upgrade` walkthrough) and [`OTHER-TOOLS.md`](./docs/OTHER-TOOLS.md) (using Permanence with something other than Claude Code) |
+| `templates/` | blank skeletons for the canonical files |
+| `example/` | a **fictional** populated Permanence (home decorating/DIY) showing the shape + each mechanism in action. **Delete `example/` once your own streams are going.** |
+| `_meta/REGISTRY.md` | maps each of your project folders → Permanence stream it should load (you fill this in) |
+
+> New here, or forgotten what's available? **`/perma-help`** lists every command and shows which background pieces are actually switched on for your machine.
 
 ## Staying current
 
