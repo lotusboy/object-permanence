@@ -17,6 +17,15 @@
 # LABEL should be a stable, unique identifier (e.g. "perma-consolidate") — used as the launchd
 # label suffix, the cron marker comment, and the schtasks task name, so re-running is idempotent
 # and unschedule_task can find what to remove.
+#
+# OWNERSHIP GUARD. The label is derived from the task name and your username, NOT from the install
+# path, because the intended model is one Permanence per machine: a stable label is what makes a
+# re-install replace its own job instead of accumulating duplicates. The cost of that choice is that
+# a SECOND Permanence on the same machine — most often a test install — would otherwise silently
+# take the first one's job and repoint it at the wrong directory, with nothing printed to say so.
+# So before writing, both functions check which Permanence an existing job actually runs from, and
+# leave it completely alone if it belongs to a different one. Re-installing over your own job is
+# unchanged; only the cross-install case is refused, and it is refused loudly.
 
 _perma_os() {
   case "$(uname -s)" in
@@ -64,8 +73,54 @@ _schtasks_args() {
   esac
 }
 
+# The Permanence this call is acting for. install.sh and shutdown-nudge.sh both set PERMA before
+# sourcing; PERMA_DIR is honoured too so a caller that only exported the override (as CI does) is
+# still matched against the right directory rather than the default.
+_perma_home() { printf '%s' "${PERMA:-${PERMA_DIR:-$HOME/permanence}}"; }
+
+_existing_job_command() {  # <label> -> the command an already-scheduled job runs, or empty
+  case "$(_perma_os)" in
+    darwin)
+      local f
+      f="$HOME/Library/LaunchAgents/com.$(id -un).${1}.plist"
+      [ -f "$f" ] || return 0
+      tr -d '\n' < "$f" | sed -n 's#.*<string>-c</string><string>\(.*\)</string></array>.*#\1#p'
+      ;;
+    linux)
+      crontab -l 2>/dev/null | grep -F "# ${1}" | head -1 ;;
+    windows)
+      MSYS_NO_PATHCONV=1 schtasks /Query /TN "$1" /FO LIST /V 2>/dev/null \
+        | sed -n 's/^Task To Run: *//p' | head -1 ;;
+  esac
+}
+
+# Returns 0 (and prints nothing) when it is safe to act: either no job exists, or the one that does
+# belongs to this same Permanence. Returns 1 after explaining, when it belongs to another.
+#   $2 = "remove", or the command this install would schedule.
+_perma_owns_job() {  # <label> <command-or-"remove">
+  local label="$1" intent="$2" home existing
+  home="$(_perma_home)"
+  existing="$(_existing_job_command "$label" 2>/dev/null)"
+  [ -n "$existing" ] || return 0
+  case "$existing" in *"$home/"*) return 0 ;; esac
+  echo "  WARN — '$label' belongs to a DIFFERENT Permanence, so it has been left untouched:"
+  echo "      already scheduled: $existing"
+  echo "      this Permanence:   $home"
+  if [ "$intent" = "remove" ]; then
+    echo "      Refusing to remove another install's scheduled task. If you did mean to remove that"
+    echo "      one, run this from the Permanence that owns it, or delete the task by hand."
+  else
+    echo "      would have run:    $intent"
+    echo "      One Permanence per machine owns a given scheduled task. If THIS one should take it"
+    echo "      over, remove the existing job first, then re-run install.sh."
+  fi
+  return 1
+}
+
 schedule_task() {
   local label="$1" command="$2" spec="$3"
+  local perma_home; perma_home="$(_perma_home)"
+  _perma_owns_job "$label" "$command" || return 0
   case "$(_perma_os)" in
     darwin)
       local plist_label; plist_label="com.$(id -un).${label}"
@@ -96,14 +151,14 @@ schedule_task() {
       } > "$plist_dst"
       launchctl bootout "gui/$(id -u)/$plist_label" 2>/dev/null
       launchctl bootstrap "gui/$(id -u)" "$plist_dst" 2>/dev/null \
-        && echo "  launchd: $label scheduled ($plist_label)" \
+        && echo "  launchd: $label scheduled ($plist_label) — runs from $perma_home" \
         || echo "  launchd: WARN — $label bootstrap failed, load manually: launchctl bootstrap gui/$(id -u) $plist_dst"
       ;;
     linux)
       local cron_line marker="# $label"
       cron_line="$(_cron_spec "$spec") $command $marker"
       ( crontab -l 2>/dev/null | grep -vF "$marker"; echo "$cron_line" ) | crontab -
-      if [ $? -eq 0 ]; then echo "  cron: $label scheduled"; else echo "  cron: WARN — could not install crontab entry for $label, add by hand: $cron_line"; fi
+      if [ $? -eq 0 ]; then echo "  cron: $label scheduled — runs from $perma_home"; else echo "  cron: WARN — could not install crontab entry for $label, add by hand: $cron_line"; fi
       ;;
     windows)
       local args; args="$(_schtasks_args "$spec")"
@@ -118,7 +173,7 @@ schedule_task() {
       else
         MSYS_NO_PATHCONV=1 schtasks /Create /SC "$sc" /ST "$st" /TN "$label" /TR "$tr_cmd" /F >/dev/null 2>&1
       fi
-      if [ $? -eq 0 ]; then echo "  schtasks: $label scheduled"; else echo "  schtasks: WARN — could not create task $label, run by hand: MSYS_NO_PATHCONV=1 schtasks /Create /SC $sc ${d:+/D $d} /ST $st /TN $label /TR '$tr_cmd' /F"; fi
+      if [ $? -eq 0 ]; then echo "  schtasks: $label scheduled — runs from $perma_home"; else echo "  schtasks: WARN — could not create task $label, run by hand: MSYS_NO_PATHCONV=1 schtasks /Create /SC $sc ${d:+/D $d} /ST $st /TN $label /TR '$tr_cmd' /F"; fi
       ;;
     *)
       echo "  WARN — unrecognized OS ($(uname -s)); skipping scheduling for $label. Run it manually or via your own scheduler: $command"
@@ -128,6 +183,8 @@ schedule_task() {
 
 unschedule_task() {
   local label="$1"
+  # Removing another Permanence's job is as damaging as overwriting it — same guard, same refusal.
+  _perma_owns_job "$label" "remove" || return 0
   case "$(_perma_os)" in
     darwin)
       local plist_label; plist_label="com.$(id -un).${label}"
