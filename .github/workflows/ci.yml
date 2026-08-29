@@ -82,7 +82,7 @@ jobs:
             macOS)
               launchctl list | grep -q "com.$(id -un).perma-consolidate" && echo "launchd: OK" ;;
             Windows)
-              schtasks /Query /TN "perma-consolidate" && echo "schtasks: OK" ;;
+              MSYS_NO_PATHCONV=1 schtasks /Query /TN "perma-consolidate" && echo "schtasks: OK" ;;
           esac
 
       - name: Verify unschedule_task cleans it up again
@@ -94,6 +94,6 @@ jobs:
           case "$RUNNER_OS" in
             Linux)   ! crontab -l 2>/dev/null | grep -q "# perma-consolidate" ;;
             macOS)   ! launchctl list 2>/dev/null | grep -q "com.$(id -un).perma-consolidate" ;;
-            Windows) ! schtasks /Query /TN "perma-consolidate" >/dev/null 2>&1 ;;
+            Windows) ! MSYS_NO_PATHCONV=1 schtasks /Query /TN "perma-consolidate" >/dev/null 2>&1 ;;
           esac
           echo "unschedule: OK"
