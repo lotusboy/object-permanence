@@ -114,11 +114,11 @@ schedule_task() {
       bash_win="$(cygpath -w "$(command -v bash)" 2>/dev/null || echo bash)"
       local tr_cmd="\"$bash_win\" -lc \"$command\""
       if [ -n "$d" ]; then
-        schtasks /Create /SC "$sc" /D "$d" /ST "$st" /TN "$label" /TR "$tr_cmd" /F >/dev/null 2>&1
+        MSYS_NO_PATHCONV=1 schtasks /Create /SC "$sc" /D "$d" /ST "$st" /TN "$label" /TR "$tr_cmd" /F >/dev/null 2>&1
       else
-        schtasks /Create /SC "$sc" /ST "$st" /TN "$label" /TR "$tr_cmd" /F >/dev/null 2>&1
+        MSYS_NO_PATHCONV=1 schtasks /Create /SC "$sc" /ST "$st" /TN "$label" /TR "$tr_cmd" /F >/dev/null 2>&1
       fi
-      if [ $? -eq 0 ]; then echo "  schtasks: $label scheduled"; else echo "  schtasks: WARN — could not create task $label, run by hand: schtasks /Create /SC $sc ${d:+/D $d} /ST $st /TN $label /TR '$tr_cmd' /F"; fi
+      if [ $? -eq 0 ]; then echo "  schtasks: $label scheduled"; else echo "  schtasks: WARN — could not create task $label, run by hand: MSYS_NO_PATHCONV=1 schtasks /Create /SC $sc ${d:+/D $d} /ST $st /TN $label /TR '$tr_cmd' /F"; fi
       ;;
     *)
       echo "  WARN — unrecognized OS ($(uname -s)); skipping scheduling for $label. Run it manually or via your own scheduler: $command"
@@ -139,7 +139,7 @@ unschedule_task() {
       ( crontab -l 2>/dev/null | grep -vF "$marker" ) | crontab - 2>/dev/null || true
       ;;
     windows)
-      schtasks /Delete /TN "$label" /F >/dev/null 2>&1 || true
+      MSYS_NO_PATHCONV=1 schtasks /Delete /TN "$label" /F >/dev/null 2>&1 || true
       ;;
   esac
   echo "  $label: removed"

@@ -59,7 +59,7 @@ job_loaded() {
     Linux)
       crontab -l 2>/dev/null | grep -qF "# $1" ;;
     MINGW*|MSYS*|CYGWIN*)
-      schtasks /Query /TN "$1" >/dev/null 2>&1 ;;
+      MSYS_NO_PATHCONV=1 schtasks /Query /TN "$1" >/dev/null 2>&1 ;;
     *) return 1 ;;
   esac
 }
