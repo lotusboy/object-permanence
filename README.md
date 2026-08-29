@@ -1,12 +1,12 @@
 # Permanence — a starter
 
-You close the laptop, come back tomorrow, and your AI coding assistant remembers nothing — not the decision you made, not why you ruled out the other approach, not who's waiting on what. So you spend the first ten minutes of every session re-explaining the project to it, or you don't, and it quietly repeats a mistake you already fixed once.
+You close the laptop, come back tomorrow, and your AI assistant remembers nothing — not the decision you made, not why you ruled out the other approach, not who's waiting on what. So you spend the first ten minutes of every session re-explaining the project to it, or you don't, and it quietly repeats a mistake you already fixed once.
 
-**Permanence is the fix**: your externalised working memory, in plain markdown + git. It holds the state of your ongoing projects — what's happening, who's involved, what's decided, what's open — in files that survive across sessions and days, so you (and Claude) pick up exactly where you left off instead of rebuilding context every time.
+**Permanence is the fix**: your externalised working memory, in plain markdown + git. It holds the state of your ongoing projects — what's happening, who's involved, what's decided, what's open — in files that survive across sessions and days, so you (and Claude) pick up exactly where you left off instead of rebuilding context every time. It's for any kind of ongoing project you run *with* an AI assistant, not just software — a client engagement, a programme you're managing, a piece of writing — anywhere you'd otherwise be the one holding all the state in your head.
 
 This isn't a demo. It's the author's actual daily driver, and it holds up under real weight: **14 concurrent project streams** tracked side by side — consulting work, internal programmes, personal projects — with one single stream alone carrying **11,000+ lines of chronological history across nearly 500 dated entries**, built up entirely through ordinary daily conversation with Claude, no special effort. Several streams run 100–200+ line `PEOPLE.md` files, actually applying the fact/inference discipline below to real working relationships over months, not a one-off example. This repo ships with **none of that** — just the machinery and conventions, plus a worked example in a far domain (home decorating/DIY) so you can see the shape in action without anyone's real project spilling into a public template.
 
-> **Just been sent this?** Unzip it, open the folder in Claude Code (or your AI coding tool), and say:
+> **Just been sent this?** Unzip it, open the folder in Claude Code (or your AI assistant), and say:
 > *"Read README.md and QUICKSTART.md, then set this Permanence up for me."*
 > It'll walk the steps. (Or read `QUICKSTART.md` yourself — about 10 minutes.) Nothing here phones home; it's plain files + local scripts.
 
@@ -21,7 +21,7 @@ A **stream** is one ongoing concern — a project, an area of life — in its ow
 - `QUESTIONS.md` — open questions (close with `[CLOSED YYYY-MM-DD]`, don't delete)
 - (`STRATEGY.md`, `README.md` as needed)
 
-A folder is a stream **iff it has a `PROJECT.md`** — that's what the tooling discovers. (See `example/home/bathroom` and `example/home/kitchen`.)
+A folder is a stream exactly when it has a `PROJECT.md` — that's what the tooling discovers. (See `example/home/bathroom` and `example/home/kitchen`.)
 
 **Turning a project into a stream — `/perma-register`.** Say *"register this project"* (point it at the README if there is one) and Claude creates the stream, seeds it from the README, and adds one row to `_meta/REGISTRY.md`. That's the whole setup — no manual file-wrangling. You don't even have to remember to do it: open a new, unregistered project and start doing real work, and Claude will notice and offer to register it, once — you'll never be nagged twice about the same folder.
 
@@ -74,7 +74,7 @@ The machinery improves over time. To pull the latest **without** disturbing your
 
 See **[QUICKSTART.md](./QUICKSTART.md)**.
 
-> Fully automated on **Claude Code** (the `/perma-*` commands, the SessionStart hook); works with other AI coding tools too (Devin, Google Antigravity, Cursor, and anything reading the `AGENTS.md` standard), automated where the tool supports a global config file, manual otherwise — see [docs/OTHER-TOOLS.md](./docs/OTHER-TOOLS.md). `SPEC.md` separates the harness-independent contract from any binding. Built on the **axis-engineering** methodology (a separate, public companion — optional).
+> Fully automated on **Claude Code** (the `/perma-*` commands, the SessionStart hook); works with other AI tools too (Devin, Google Antigravity, Cursor, and anything reading the `AGENTS.md` standard), automated where the tool supports a global config file, manual otherwise — see [docs/OTHER-TOOLS.md](./docs/OTHER-TOOLS.md). Using something without hooks at all, like plain Claude Desktop or a chat interface? The manual pointer in that doc still works — just not hands-off. `SPEC.md` separates the harness-independent contract from any binding. Built on the **axis-engineering** methodology (a separate, public companion — optional).
 
 ## License
 
