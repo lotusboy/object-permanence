@@ -6,9 +6,34 @@ You close the laptop, come back tomorrow, and your AI assistant remembers nothin
 
 This isn't a demo. It's the author's actual daily driver, and it holds up under real weight: **14 concurrent project streams** tracked side by side — consulting work, internal programmes, personal projects — with one single stream alone carrying **11,000+ lines of chronological history across nearly 500 dated entries**, built up entirely through ordinary daily conversation with Claude, no special effort. Several streams run 100–200+ line `PEOPLE.md` files, actually applying the fact/inference discipline below to real working relationships over months, not a one-off example. This repo ships with **none of that** — just the machinery and conventions, plus a worked example in a far domain (home decorating/DIY) so you can see the shape in action without anyone's real project spilling into a public template.
 
-> **Just been sent this?** Unzip it, open the folder in Claude Code (or your AI assistant), and say:
-> *"Read README.md and QUICKSTART.md, then set this Permanence up for me."*
-> It'll walk the steps. (Or read `QUICKSTART.md` yourself — about 10 minutes.) Nothing here phones home; it's plain files + local scripts.
+---
+
+## Install it — about 5 minutes
+
+**The lazy way: hand your AI this repo and one instruction.** Paste both lines into Claude Code (or any AI assistant with shell access):
+
+> `https://github.com/lotusboy/object-permanence`
+> *"Clone this to `~/permanence`, then read its README.md and QUICKSTART.md and set Permanence up for me."*
+
+**The manual way — three commands:**
+
+```bash
+git clone https://github.com/lotusboy/object-permanence.git ~/permanence
+cd ~/permanence && rm -rf .git && git init && git add -A && git commit -m "My Permanence"
+~/permanence/runtime/install.sh
+```
+
+Three things that trip people up, so they're said plainly:
+
+- **The repo is called `object-permanence`, but it installs to `~/permanence`.** That's why the clone command names the target directory explicitly. Every script assumes `~/permanence`; a bare `git clone` would land in the wrong place. (Set `PERMA_DIR` if you genuinely want it somewhere else.)
+- **Throwing away `.git` and re-initialising is deliberate, not a mistake.** Your Permanence fills up with your own private notes about real projects and real people. It becomes *your* repo with *your* history — not a fork of this one, and not something you'd ever push back here.
+- **You can still pull future improvements after that.** `/perma-upgrade` reads the upstream URL from `runtime/.update-source`, a tracked file in the repo — it doesn't depend on the git remote you just removed.
+
+Then follow **[QUICKSTART.md](./QUICKSTART.md)** for the rest — mainly registering your first project, which is one sentence spoken to Claude.
+
+Nothing here phones home. It's plain markdown files and local shell scripts; the only thing that talks to a network is the optional nightly tidy, which runs your own Claude.
+
+> **Been handed a zip rather than the link?** Same thing — unzip it, move the folder to `~/permanence`, open it in your AI assistant and say *"read README.md and QUICKSTART.md, then set this Permanence up for me."*
 
 ---
 
@@ -72,7 +97,7 @@ The machinery improves over time. To pull the latest **without** disturbing your
 
 ## Get going
 
-See **[QUICKSTART.md](./QUICKSTART.md)**.
+Install commands are at the [top of this page](#install-it--about-5-minutes); the walkthrough is **[QUICKSTART.md](./QUICKSTART.md)**.
 
 > Fully automated on **Claude Code** (the `/perma-*` commands, the SessionStart hook); works with other AI tools too (Devin, Google Antigravity, Cursor, and anything reading the `AGENTS.md` standard), automated where the tool supports a global config file, manual otherwise — see [docs/OTHER-TOOLS.md](./docs/OTHER-TOOLS.md). Using something without hooks at all, like plain Claude Desktop or a chat interface? The manual pointer in that doc still works — just not hands-off. `SPEC.md` separates the harness-independent contract from any binding. Built on the **axis-engineering** methodology (a separate, public companion — optional).
 
