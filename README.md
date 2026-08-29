@@ -32,7 +32,12 @@ A folder is a stream **iff it has a `PROJECT.md`** — that's what the tooling d
 
 ## The loops
 
-- **Write / read** — you (and Claude) update streams as things move; the session-start hook loads the right stream when you open a project.
+- **Write / read — how "automatic" actually works.** No daemon watches your conversation; it's two hooks plus one instruction, every session:
+  1. **SessionStart** (`session-start.sh`) fires when you open a registered project — resolves the stream from `_meta/REGISTRY.md` and puts orientation into context.
+  2. **UserPromptSubmit** (`session-load.sh`) fires on your first message — this is the *reliable* trigger. A passive SessionStart note is easy for a model to skim past; this one forces the instruction onto the very message Claude is about to answer, so it actually reads `PROJECT.md` / `QUESTIONS.md` / the `LOG.md` tail before responding.
+  3. **That's also where the write side comes from.** What Claude reads includes the standing rule itself — *update this stream whenever something material shifts, without being asked.* There's no separate writer process: the same model, in the same conversation, keeps the files current because it was told to and follows through, the same way it follows any other instruction you give it.
+
+  Worth being honest about the limit: this is instruction-following, not a guarantee — nothing mechanically enforces it. `/perma-consolidate` exists partly as the safety net for exactly that gap, catching drift if an update ever gets missed.
 - **Consolidate** (`/perma-consolidate` → `/perma-consolidate-review`) — a periodic tidy: catches stale PROJECTs, closes aged inferences, dedupes. See `example/.consolidation/REPORT-example.md`.
 - **Orchestrate** (`/perma-orchestrate`) — finds ideas converging across streams you didn't connect. See `example/_meta/emergent.md`. (Only useful once you have a few streams — ignore it at first.)
 
