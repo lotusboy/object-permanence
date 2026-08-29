@@ -66,3 +66,7 @@ The machinery improves over time. To pull the latest **without** disturbing your
 See **[QUICKSTART.md](./QUICKSTART.md)**.
 
 > Fully automated on **Claude Code** (the `/perma-*` commands, the SessionStart hook); works with other AI coding tools too (Devin, Google Antigravity, Cursor, and anything reading the `AGENTS.md` standard), automated where the tool supports a global config file, manual otherwise — see [docs/OTHER-TOOLS.md](./docs/OTHER-TOOLS.md). `SPEC.md` separates the harness-independent contract from any binding. Built on the **axis-engineering** methodology (a separate, public companion — optional).
+
+## License
+
+Copyright (C) 2026 Steven Loftus. Licensed under the [GNU General Public License v3.0](./LICENSE) — free to use, modify, and distribute, including commercially; a distributed modified version must stay open under the same terms.
