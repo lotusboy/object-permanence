@@ -4,10 +4,30 @@ Five steps to a working Permanence. ~10 minutes.
 
 ## 1. Put it at `~/permanence`
 
+From GitHub:
+
 ```bash
-cp -R permanence ~/permanence      # or: git clone <your fork> ~/permanence
-cd ~/permanence && rm -rf .git && git init      # your own fresh history
+git clone https://github.com/lotusboy/object-permanence.git ~/permanence
+cd ~/permanence && rm -rf .git && git init && git add -A && git commit -m "My Permanence"
 ```
+
+Or, if you were handed a copy of the folder rather than the link:
+
+```bash
+cp -R <the-folder> ~/permanence
+cd ~/permanence && rm -rf .git && git init && git add -A && git commit -m "My Permanence"
+```
+
+**Why the directory name changes.** The repo is called `object-permanence`; the install location is
+always `~/permanence`, which every script assumes. That's why the clone command names its target
+explicitly. (Override with `PERMA_DIR` only if you really need it elsewhere.)
+
+**Why `.git` gets thrown away.** Your Permanence fills with private notes about real projects and real
+people, so it becomes *your* repository with *your* history — not a fork of the template, and never
+something you'd push back upstream. The initial commit matters too: it's what arms the git hooks and
+lets the install stamp a version on the commands. You can still pull future template improvements —
+`/perma-upgrade` reads the upstream URL from `runtime/.update-source`, a tracked file, not from the git
+remote you just removed.
 
 > **Platform notes.** Works on macOS and Linux with no changes. On **Windows**, use Claude Code with
 > **Git for Windows** installed (it bundles Git Bash, which Claude Code uses to run these scripts

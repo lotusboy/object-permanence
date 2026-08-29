@@ -118,10 +118,10 @@ PY
 else
   cat <<SETTINGS
   settings.json: python3 not found — add these by hand to ~/.claude/settings.json (MERGE, don't overwrite):
-      "permissions": { "additionalDirectories": ["$HOME/permanence"] },
+      "permissions": { "additionalDirectories": ["$PERMA"] },
       "hooks": {
-        "SessionStart": [ { "hooks": [ { "type": "command", "command": "$HOME/permanence/runtime/session-start.sh", "timeout": 10 } ] } ],
-        "UserPromptSubmit": [ { "hooks": [ { "type": "command", "command": "$HOME/permanence/runtime/session-load.sh", "timeout": 10 } ] } ]
+        "SessionStart": [ { "hooks": [ { "type": "command", "command": "$PERMA/runtime/session-start.sh", "timeout": 10 } ] } ],
+        "UserPromptSubmit": [ { "hooks": [ { "type": "command", "command": "$PERMA/runtime/session-load.sh", "timeout": 10 } ] } ]
       }
 SETTINGS
 fi
