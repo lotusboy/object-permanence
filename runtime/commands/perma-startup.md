@@ -1,0 +1,31 @@
+---
+description: Morning bookend to /perma-shutdown — project-specific "where you left off" plus a small (2-3) set of next-task options for the current repo's Permanence stream. Trigger phrases: "good morning Permanence", "morning Permanence".
+---
+
+# Permanence — Morning
+
+The morning bookend to `/perma-shutdown`, scoped to *this* project only — not the cross-stream `/perma-brief`. When I open a project and say "good morning Permanence" (or "morning Permanence"), get me oriented fast: where I left off, and a short list of what to pick up next. This is strictly orientation — do NOT start work, investigate, or fix anything.
+
+## How to run it
+
+1. **Find this repo's stream.** Run `~/permanence/runtime/resolve-stream.sh "$(pwd -P)"`. If it comes back empty (unregistered) or `perma-meta`, say so plainly and stop there — don't fall back to a generic brief, and don't invent project content for an unregistered workspace.
+2. **Read the stream:**
+   - `PROJECT.md` — the "Current state" / "where things stand" block, and its `Last updated` date.
+   - `QUESTIONS.md` — only the still-open items with an actual next action for me (skip ones purely waiting on someone else).
+   - The **tail** of `LOG.md` — last few entries only, to catch anything since PROJECT.md was last touched.
+3. **Staleness check** — same as `/perma-brief`: if `LOG.md`'s most recent entry is dated after `PROJECT.md`'s `Last updated` header, flag it (the headline may be behind).
+4. **Cross-check the real repo, not just Permanence.** In the *current project repo*: `git status` and recent commits (`git log --pretty=format:"%h %s" -10`). If there are uncommitted changes or a resume point `/perma-shutdown` captured recently, that's the ground truth for "where I left off" — Permanence stream gives the why, the repo gives the exact state.
+5. **Hand back a short, scannable orientation — chat only, nothing written to Permanence:**
+   - 📍 **Where you left off** — one or two lines, concrete (file/ticket/resume point from step 4), not a history recap.
+   - 🎯 **Next task options** — 2, at most 3. Each one line: what it is, why it's a candidate. If one is obviously the right next move, just say so plainly instead of forcing a choice between equals.
+   - 🤝 Only if relevant: anything that unblocked overnight (a handoff or open question now answered).
+
+## Guardrails
+
+- **Small, not exhaustive.** Cap at 3 options, ranked if there's an obvious first. If the stream has a long open-questions list, that's a `/perma-brief`-scale problem, not a morning-orientation one — surface only what has a real next action today.
+- **This project only.** Don't pull in other streams — that's `/perma-brief`'s job. Scoped strictly to the repo `pwd` resolves to.
+- **Read-only.** Like `/perma-brief`, this doesn't write anything to Permanence.
+- **Orientation only.** No new work, no investigation, no fixes — even if something looks quick.
+- **Gentle register**, same as the rest of Permanence.
+
+If `~/permanence` is missing or this workspace has no stream, say so plainly rather than inventing content.

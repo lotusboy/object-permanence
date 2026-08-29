@@ -1,0 +1,4 @@
+<!-- perma:begin (managed by ~/permanence/runtime/install.sh — edit ~/permanence/runtime/agents-md-block.md, not here) -->
+## Permanence protocol (Tier 2 — non-Claude-Code agents)
+At the start of a session in any project directory, run `~/permanence/runtime/session-start.sh` and follow its output: it resolves the current directory through `~/permanence/_meta/REGISTRY.md` and says which Permanence stream (if any) to read before starting work. If you can't run shell commands, read `~/permanence/_meta/REGISTRY.md` yourself to find the mapped stream, then read that stream's `PROJECT.md`, `QUESTIONS.md`, and the tail of `LOG.md`. Update the mapped stream's files whenever something material changes, without being asked — see `~/permanence/SPEC.md` for the full contract. Never reference Permanence's paths or contents in any file committed to a project repository (one-way flow).
+<!-- perma:end -->

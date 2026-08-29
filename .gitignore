@@ -1,0 +1,18 @@
+.consolidation/
+CONTENTS.md
+.perma-lock
+runtime/logs/
+.DS_Store
+.claude/
+__pycache__/
+*.pyc
+
+# but DO ship the worked-example exhibits
+!example/.consolidation/
+!example/.consolidation/**
+_meta/events.jsonl
+_meta/.events-seen/
+runtime/search/.index/
+runtime/search/.venv/
+_meta/.cogdebt-state.json
+_meta/cogdebt/
