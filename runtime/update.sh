@@ -64,22 +64,42 @@ else
   echo "$CHANGED" | sed 's/^/  /'
 fi
 
+# Individual changed files — everything below works file-by-file from here on, not by the
+# top-level PATHS entry a file happens to live under. The old design skipped an entire directory
+# (e.g. all of runtime/, every one of its ~20 scripts) from being applied just because ONE file in
+# it conflicted; per-file tracking means only the actually-conflicting files are held back.
+CHANGED_FILES=()
+while IFS=$'\t' read -r _ path; do
+  [ -n "${path:-}" ] || continue
+  CHANGED_FILES+=("$path")
+done <<< "$CHANGED"
+
 # --- conflict detection: did YOUR history touch a changed path since your recorded version? ---
 CONFLICTS=()
 if [ "$CURRENT" != "unknown" ] && git -C "$PERMA" rev-parse -q --verify "$CURRENT" >/dev/null 2>&1; then
-  while IFS=$'\t' read -r _ path; do
-    [ -n "${path:-}" ] || continue
+  for path in "${CHANGED_FILES[@]:-}"; do
+    [ -n "$path" ] || continue
     if ! git -C "$PERMA" diff --quiet "$CURRENT" HEAD -- "$path" 2>/dev/null; then
       CONFLICTS+=("$path")
     fi
-  done <<< "$CHANGED"
+  done
 else
-  [ "$CURRENT" = "unknown" ] || echo "  (note: recorded version $CURRENT isn't a known ref here — skipping customization check)"
+  # No usable recorded version, so there is no way to tell "you customized this" from "the
+  # template changed this" — treat every changed file as needing review rather than applying
+  # anything blind. SPEC.md's guarantee is "negotiated per file, never silently overwritten";
+  # failing open here (apply everything, since nothing LOOKS conflicted) would break that
+  # guarantee the moment VERSION goes missing or points at a commit this clone doesn't have.
+  if [ "$CURRENT" = "unknown" ]; then
+    echo "  (note: no recorded version — treating all ${#CHANGED_FILES[@]} changed file(s) as needing review, not applying any blind)"
+  else
+    echo "  (note: recorded version $CURRENT isn't a known ref here — treating all ${#CHANGED_FILES[@]} changed file(s) as needing review, not applying any blind)"
+  fi
+  CONFLICTS=("${CHANGED_FILES[@]:-}")
 fi
 
 if [ "${#CONFLICTS[@]}" -gt 0 ]; then
   echo ""
-  echo "⚠️  You've customized ${#CONFLICTS[@]} file(s) the template also changed — these need a decision, not a blind overwrite:"
+  echo "⚠️  ${#CONFLICTS[@]} file(s) need review before being applied (customized locally, or the customization check itself was unavailable):"
   printf '  %s\n' "${CONFLICTS[@]}"
 fi
 
@@ -94,31 +114,56 @@ if [ "$MODE" = "dry-run" ]; then
   exit 0
 fi
 
-# --- apply: only the non-conflicted paths; conflicted ones are left for /perma-upgrade to negotiate ---
-APPLY_PATHS=()
-for p in "${PATHS[@]}"; do
-  skip=false
+# --- apply: only the non-conflicted FILES; conflicted ones are left for /perma-upgrade to negotiate ---
+APPLY_FILES=()
+for f in "${CHANGED_FILES[@]:-}"; do
+  [ -n "$f" ] || continue
+  conflicted=false
   for c in "${CONFLICTS[@]:-}"; do
-    case "$c" in "$p"*) skip=true; break ;; esac
+    [ -n "$c" ] && [ "$c" = "$f" ] && { conflicted=true; break; }
   done
-  $skip || APPLY_PATHS+=("$p")
+  $conflicted || APPLY_FILES+=("$f")
 done
 
-git -C "$PERMA" checkout -q "$TARGET" -- "${APPLY_PATHS[@]}" 2>/dev/null || true
+# Guard the expansion itself, not just its contents: bash 3.2 (still macOS's /bin/bash) raises
+# "unbound variable" under set -u on "${arr[@]}" when arr is a DECLARED-BUT-EMPTY array — not a
+# hypothetical, reproduced on this machine. Checking length first sidesteps the bug entirely for
+# every array below, rather than relying on the `:-` fallback (which itself needs the `-n` guards
+# above to skip the one spurious empty-string element it introduces).
+if [ "${#APPLY_FILES[@]}" -gt 0 ]; then
+  git -C "$PERMA" checkout -q "$TARGET" -- "${APPLY_FILES[@]}" 2>/dev/null || true
+fi
 chmod +x "$PERMA/runtime/"*.sh "$PERMA/.githooks/"* 2>/dev/null
 echo "re-running install.sh (re-wires hooks + commands) ..."
 bash "$PERMA/runtime/install.sh"
 mkdir -p "$PERMA/_meta"
-printf '%s' "${LATEST_TAG:-$TARGET}" > "$PERMA/_meta/VERSION"
-git -C "$PERMA" add "${APPLY_PATHS[@]}" "$PERMA/_meta/VERSION" 2>/dev/null
+
+# Only advance the recorded version when EVERY changed file in this range actually landed. A
+# partial apply (some files held back as conflicts) is real progress, but it is not "you're now
+# at LATEST_TAG" — bumping VERSION anyway would make the next run's up-to-date short-circuit
+# (above) report "Already up to date" forever, hiding the still-outstanding files for good.
+if [ "${#CONFLICTS[@]}" -eq 0 ]; then
+  printf '%s' "${LATEST_TAG:-$TARGET}" > "$PERMA/_meta/VERSION"
+  git -C "$PERMA" add "$PERMA/_meta/VERSION" 2>/dev/null
+fi
+if [ "${#APPLY_FILES[@]}" -gt 0 ]; then
+  git -C "$PERMA" add "${APPLY_FILES[@]}" 2>/dev/null
+fi
 
 if git -C "$PERMA" diff --cached --quiet; then
-  echo "Already up to date — no machinery changes."
-else
+  if [ "${#CONFLICTS[@]}" -gt 0 ]; then
+    echo "Nothing applied — every changed file is flagged for review above; none applied blind."
+  else
+    echo "Already up to date — no machinery changes."
+  fi
+elif [ "${#CONFLICTS[@]}" -eq 0 ]; then
   git -C "$PERMA" commit -q -m "perma-upgrade: machinery refreshed to ${LATEST_TAG:-$TARGET} ($SRC)"
   echo "✅ Machinery updated to ${LATEST_TAG:-$TARGET} and committed; your streams are untouched. Start a fresh session so the new hooks load."
+else
+  git -C "$PERMA" commit -q -m "perma-upgrade: partial machinery update, ${#CONFLICTS[@]} file(s) left for review ($SRC)"
+  echo "✅ ${#APPLY_FILES[@]} non-conflicting file(s) updated and committed; recorded version stays $CURRENT until the ${#CONFLICTS[@]} flagged file(s) below are resolved."
 fi
 if [ "${#CONFLICTS[@]}" -gt 0 ]; then
   echo ""
-  echo "⚠️  ${#CONFLICTS[@]} customized file(s) left untouched (see above) — resolve them with /perma-upgrade."
+  echo "⚠️  ${#CONFLICTS[@]} file(s) left for review (see above) — resolve them with /perma-upgrade, then re-run to finish and advance the version."
 fi

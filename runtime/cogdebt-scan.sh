@@ -36,7 +36,18 @@ REPORT_DIR="$PERMA/_meta/cogdebt"                  # dated reports (gitignored r
 QUIET=0; REPOS=()
 for a in "$@"; do [ "$a" = "--quiet" ] && QUIET=1 || REPOS+=("$a"); done
 # Default watch-list: the AI-built assets worth watching. Edit here to add repos.
-[ ${#REPOS[@]} -eq 0 ] && REPOS=("$HOME/path/to/your/ai-built-repo")
+PLACEHOLDER="$HOME/path/to/your/ai-built-repo"
+[ ${#REPOS[@]} -eq 0 ] && REPOS=("$PLACEHOLDER")
+
+# Unconfigured: refuse to run rather than silently misreport. Left running against the
+# placeholder, this either logged "not a git repo" every week forever, or — if something
+# genuinely existed at that literal path but wasn't Python — measured src_loc=0, tripped both
+# the doc_to_code and test_per_kloc floors, and emitted FALSE cognitive-debt breach events into
+# every open session. Both are worse than simply saying "not configured yet."
+if [ "${#REPOS[@]}" -eq 1 ] && [ "${REPOS[0]}" = "$PLACEHOLDER" ]; then
+  [ "$QUIET" -eq 1 ] || echo "cogdebt-scan: not configured — edit the REPOS watch-list at the top of this script (or pass repo paths as arguments) before it has anything to measure."
+  exit 0
+fi
 
 # --- tunable thresholds ---
 BIG_FILE=1000        # a single source file over this many LOC = concentration flag
@@ -78,11 +89,16 @@ done
 ALL+="]"
 
 # Compute breaches + trend deltas vs last run, render report, decide events — in python.
-python3 - "$STATE" "$REPORT_DIR" "$QUIET" "$PERMA" "$BIG_FILE" "$DOC_CODE_MIN" "$TEST_KLOC_MIN" "$UNATTENDED_MAX" <<PY
+# $ALL is passed as a real argv string, parsed with json.loads — NOT embedded as literal Python
+# source inside the heredoc (the old '''$ALL''' form). A repo's commit author name (`topauthor`,
+# gathered from `git shortlog`) flows into $ALL uninspected; embedded as source text, a name
+# containing the sequence that closes a Python triple-quoted string would have let arbitrary
+# Python run inside this scheduled, unattended job. json.loads only ever parses data, never executes it.
+python3 - "$STATE" "$REPORT_DIR" "$QUIET" "$PERMA" "$BIG_FILE" "$DOC_CODE_MIN" "$TEST_KLOC_MIN" "$UNATTENDED_MAX" "$ALL" <<'PY'
 import json,sys,os,subprocess,datetime
-state_f,report_dir,quiet,perma,BIG,DOCMIN,TESTMIN,UNATT=sys.argv[1:9]
+state_f,report_dir,quiet,perma,BIG,DOCMIN,TESTMIN,UNATT,all_json=sys.argv[1:10]
 quiet=quiet=="1"; BIG=int(BIG); DOCMIN=float(DOCMIN); TESTMIN=float(TESTMIN); UNATT=int(UNATT)
-cur=json.loads('''$ALL''')
+cur=json.loads(all_json)
 prior={}
 try:
     for r in json.load(open(state_f)): prior[r["repo"]]=r

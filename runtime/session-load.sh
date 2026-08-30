@@ -10,12 +10,23 @@ PERMA="${PERMA_DIR:-$HOME/permanence}"
 [ -d "$PERMA" ] || exit 0
 
 input=$(cat 2>/dev/null)   # UserPromptSubmit delivers a JSON object on stdin (session_id, cwd, …)
-read -r SID CWD < <(printf '%s' "$input" | python3 -c '
+if command -v python3 >/dev/null 2>&1; then
+  read -r SID CWD < <(printf '%s' "$input" | python3 -c '
 import json,sys,os
 try: d=json.load(sys.stdin)
 except Exception: d={}
 print(d.get("session_id") or d.get("transcript_path") or "nosid", d.get("cwd") or os.environ.get("PWD",""))
 ' 2>/dev/null)
+else
+  # No python3: without it, SID silently came back empty, the "${SID:-nosid}" check below then
+  # read as already-nosid, the once-per-session marker never got set, and this hook's whole
+  # auto-load paragraph re-injected on EVERY prompt of the session rather than just the first.
+  # A plain-text extraction is good enough here — session_id/cwd are simple strings, and this is
+  # a degraded fallback, not the primary path.
+  SID="$(printf '%s' "$input" | sed -n 's/.*"session_id"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')"
+  CWD="$(printf '%s' "$input" | sed -n 's/.*"cwd"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')"
+  [ -n "$SID" ] || SID="nosid"
+fi
 [ -n "${CWD:-}" ] || CWD="$PWD"
 
 # Once per session: a marker keyed by session id. (Falls through to inject-every-prompt only in the

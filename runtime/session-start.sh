@@ -5,10 +5,23 @@
 # never dump file contents into context from here.
 
 PERMA="${PERMA_DIR:-$HOME/permanence}"
-REG="$PERMA/_meta/REGISTRY.md"
-CWD="$(pwd -P)"
 
 [ -d "$PERMA" ] || exit 0   # no Permanence on this machine — stay silent
+
+# cwd: read the SessionStart hook's own JSON payload on stdin — Claude Code's hooks guide
+# documents `cwd` as a common field on every hook event, the same one session-load.sh (the
+# UserPromptSubmit hook) reads. Reading that SAME field, rather than this script independently
+# computing its own `pwd -P`, is what actually guarantees the two hooks agree: under a symlinked
+# workspace they previously could (and did, on testing) disagree, leaving one session with
+# contradictory registration status from its own two hooks in the same turn.
+INPUT="$(cat 2>/dev/null)"
+CWD="$(printf '%s' "$INPUT" | python3 -c '
+import json,sys
+try: d=json.load(sys.stdin)
+except Exception: d={}
+print(d.get("cwd") or "")
+' 2>/dev/null)"
+[ -n "$CWD" ] || CWD="$(pwd -P)"   # no JSON / no python3 — fall back to the old physical-path behavior
 
 # --- consolidation lock check (writer-side guard, hardening item 4) ---
 LOCK="$PERMA/.perma-lock"
@@ -24,19 +37,11 @@ if [ -f "$LOCK" ]; then
   fi
 fi
 
-# --- registry lookup: longest-prefix match of CWD against registered paths ---
-BEST_PATH=""
-BEST_STREAM=""
-while IFS='|' read -r _ ws stream _; do
-  ws=$(echo "$ws" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
-  stream=$(echo "$stream" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
-  case "$ws" in (/*) ;; (*) continue;; esac          # only path rows
-  case "$CWD" in
-    ("$ws"|"$ws"/*)
-      if [ ${#ws} -gt ${#BEST_PATH} ]; then BEST_PATH="$ws"; BEST_STREAM="$stream"; fi
-      ;;
-  esac
-done < "$REG"
+# --- registry lookup: delegate to resolve-stream.sh rather than re-parsing REGISTRY.md here.
+#     This file used to carry its own independent copy of the same longest-prefix parser — a fix
+#     to the shared one (trailing-slash handling, malformed-row rejection) would have silently
+#     missed this, the one path every session actually goes through first.
+BEST_STREAM="$("$PERMA/runtime/resolve-stream.sh" "$CWD" 2>/dev/null)"
 
 if [ -z "$BEST_STREAM" ]; then
   # Is this a container folder rather than a project? A session opened without its working folder set
@@ -54,7 +59,7 @@ if [ -z "$BEST_STREAM" ]; then
 fi
 
 if [ "$BEST_STREAM" = "perma-meta" ]; then
-  echo "[perma] Perma-meta context (registry: $BEST_PATH). No customer stream loads here. /perma-brief, /perma-consolidate, /perma-orchestrate, /perma-contents are available; Permanence root is ~/permanence."
+  echo "[perma] Perma-meta context (this workspace matched a perma-meta row in the registry). No customer stream loads here. /perma-brief, /perma-consolidate, /perma-orchestrate, /perma-contents are available; Permanence root is ~/permanence."
   exit 0
 fi
 

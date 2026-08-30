@@ -37,10 +37,17 @@ patterns=(
   '\bnever going to (change|learn|get it)\b'
   '\bthat'\''s (just )?who (he|she|they) (is|are)\b'
   '\b(personality|character) (flaw|defect|problem|issue)\b'
-  '\bby nature\b'
+  # Gated on a preceding pronoun within a short window — "by nature" alone also describes
+  # ordinary systems/code ("idempotent by nature"), which isn't what this guard is for.
+  '\b(he|she|they)( ?'\''s| is| are| was| were)?[^.]{0,20}\bby nature\b'
   # --- person-directed coarse character attacks ---
-  '\b(is|was|being|such|a real) (a |an )?(idiot|moron|imbecile|liar|fraud|snake|coward|narcissist|sociopath|psychopath|clown)\b'
-  '\b(incompetent|spineless|clueless|gutless|two-faced|backstabbing|deceitful|dishonest)\b'
+  # Both buckets require the same "is/was/being/such/a real" linking-verb prefix — the old
+  # second bucket had none at all, so "incompetent"/"dishonest" fired on ANY appearance in a
+  # line regardless of subject ("the retry logic was incompetent", "the API docs are dishonest"
+  # both tripped it). Still imprecise for a non-pronoun subject sharing that same linking verb
+  # (documented limitation, not solved here — git commit --no-verify is the sanctioned escape
+  # hatch below for exactly this kind of false positive).
+  '\b(is|was|being|such|a real) (a |an )?(idiot|moron|imbecile|liar|fraud|snake|coward|narcissist|sociopath|psychopath|clown|incompetent|spineless|clueless|gutless|two-faced|backstabbing|deceitful|dishonest)\b'
 )
 
 file=""
@@ -51,14 +58,27 @@ while IFS= read -r line; do
     '+++ b/'*)
       file="${line#+++ b/}"
       ;;
+    '+++ "b/'*)
+      # Git quotes (and C-escapes) the path here when it needs it — typically a non-ASCII
+      # filename. Not fully unescaped (a flagged message may show raw escape sequences), but
+      # the file is no longer silently dropped into the /dev/null branch below: every added
+      # line in it still gets scanned, which is the property that actually matters.
+      file="${line#+++ \"b/}"
+      file="${file%\"}"
+      ;;
     '+++ '*)
       file=""   # /dev/null or other
       ;;
     '+'*)
       [ -z "$file" ] && continue
       # Skip files that legitimately hold the rule text + examples.
+      # Only the repo's OWN top-level README.md (which explains this rule and may carry
+      # illustrative phrases) and this script's own body are exempt. The old "*/README.md"
+      # wildcard also exempted every STREAM's README.md — a canonical per-stream file per
+      # SPEC.md that can hold real content about real people, which then went completely
+      # unchecked. A stream's README is no longer exempt.
       case "$file" in
-        README.md|*/README.md|.githooks/*) continue ;;
+        README.md|.githooks/*) continue ;;
       esac
       content="${line#+}"
       for p in "${patterns[@]}"; do

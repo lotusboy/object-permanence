@@ -10,15 +10,28 @@ CMD_SRC="$PERMA/runtime/commands"
 CMD_DST="$HOME/.claude/commands"
 SHA=$(git -C "$PERMA" rev-parse --short HEAD 2>/dev/null || echo "unversioned")
 
+# Tracks whether a step that matters actually succeeded, so the final line can say so honestly.
+# Without this, install.sh printed "done." unconditionally — a failed cp, an unparseable
+# settings.json, or a missing python3 all left the install silently incomplete while reporting
+# success. Not every possible failure in this script is caught (a full `set -e` audit was judged
+# riskier — several lines here rely on an expected, harmless failure via `2>/dev/null` or `||`,
+# and blanket -e risks a NEW silent-abort mode instead of fixing this one); this covers the two
+# concrete cases most likely to leave hooks unwired: the command copy and the settings.json write.
+INSTALL_FAILED=0
+
 echo "Permanence install — runtime @ $SHA"
 
 # 1. Commands: copy with version marker appended
 mkdir -p "$CMD_DST"
 for f in "$CMD_SRC"/*.md; do
   name=$(basename "$f")
-  cp "$f" "$CMD_DST/$name"
-  printf '\n<!-- installed-from: ~/permanence/runtime/commands/%s @ %s — edit the source in Permanence, then re-run ~/permanence/runtime/install.sh -->\n' "$name" "$SHA" >> "$CMD_DST/$name"
-  echo "  command: $name"
+  if cp "$f" "$CMD_DST/$name"; then
+    printf '\n<!-- installed-from: ~/permanence/runtime/commands/%s @ %s — edit the source in Permanence, then re-run ~/permanence/runtime/install.sh -->\n' "$name" "$SHA" >> "$CMD_DST/$name"
+    echo "  command: $name"
+  else
+    echo "  command: $name — FAILED to copy"
+    INSTALL_FAILED=1
+  fi
 done
 
 # 2. Executable bits + git hooks path (re-run needed once after any re-clone)
@@ -29,23 +42,58 @@ echo "  hooks: core.hooksPath=.githooks (pre-commit people-guard + post-commit c
 # 3. Scheduled tasks — cross-platform via schedule-task.sh (launchd/cron/schtasks, per OS)
 mkdir -p "$PERMA/runtime/logs"
 source "$PERMA/runtime/schedule-task.sh"
-schedule_task "perma-consolidate" "$PERMA/runtime/nightly-consolidate.sh >> $PERMA/runtime/logs/nightly-consolidate.log 2>&1" "daily 05:30"
-schedule_task "perma-cogdebt" "$PERMA/runtime/cogdebt-scan.sh --quiet >> $PERMA/runtime/logs/cogdebt.log 2>&1" "weekday 1 06:00"
-echo "  (weekly cognitive-debt scan: edit the REPOS watch-list in runtime/cogdebt-scan.sh first)"
+# $PERMA is embedded here inside its own literal double-quotes ("$PERMA"), not bare — this
+# string is re-parsed as a shell command line a second time, by launchd/cron/schtasks, once the
+# scheduled job actually fires. A bare, unquoted $PERMA containing a space (a real macOS
+# possibility — "/Users/Anna Smith") word-splits at that second parse: launchd tried to run
+# "/Users/Anna" as the command with "Smith/permanence/..." as its argument, confirmed by running
+# it. Embedding the quote characters now is what survives that second parse.
+schedule_task "perma-consolidate" "\"$PERMA\"/runtime/nightly-consolidate.sh >> \"$PERMA\"/runtime/logs/nightly-consolidate.log 2>&1" "daily 05:30"
 
-# 4. CLAUDE.md: manage ONLY the delimited Permanence block (never touch the rest of the file)
+# Cognitive-debt scan: OPT-IN, matching README's own "Opt-in extras" listing — this is the fix,
+# not just the comment. Auto-scheduling it unconditionally used to set up a weekly job that was
+# guaranteed broken on every fresh install (the watch-list is a placeholder path until edited);
+# cogdebt-scan.sh now refuses to run against that placeholder, so scheduling it before it's
+# configured would just mean a weekly job that logs "not configured" instead of doing anything.
+# Detected rather than a separate manual step: schedule it once the placeholder is actually gone.
+if grep -q '/path/to/your/ai-built-repo' "$PERMA/runtime/cogdebt-scan.sh" 2>/dev/null; then
+  echo "  cogdebt scan: NOT scheduled — edit the REPOS watch-list at the top of runtime/cogdebt-scan.sh, then re-run install.sh to schedule the weekly check"
+else
+  schedule_task "perma-cogdebt" "\"$PERMA\"/runtime/cogdebt-scan.sh --quiet >> \"$PERMA\"/runtime/logs/cogdebt.log 2>&1" "weekday 1 06:00"
+fi
+
+# 4. CLAUDE.md + AGENTS.md: manage ONLY the delimited Permanence block, never the rest of a
+#    file we don't own. `_perma_block_merge` is the one place that splices into someone else's
+#    file, so it carries the safety net: refuse to touch a mismatched begin/end pair (writing
+#    through one would delete everything after it) and back up before any in-place replace.
+_perma_block_merge() {  # _perma_block_merge <target-file> <block-source-file>
+  local dst="$1" src="$2" begins ends begin_line end_line
+  [ -f "$src" ] || return 0
+  mkdir -p "$(dirname "$dst")"
+  if [ -f "$dst" ] && grep -q '<!-- perma:begin' "$dst" 2>/dev/null; then
+    begins=$(grep -c '<!-- perma:begin' "$dst")
+    ends=$(grep -c '<!-- perma:end -->' "$dst")
+    begin_line=$(grep -n '<!-- perma:begin' "$dst" | head -1 | cut -d: -f1)
+    end_line=$(grep -n '<!-- perma:end -->' "$dst" | head -1 | cut -d: -f1)
+    if [ "$begins" -ne "$ends" ] || [ -z "$end_line" ] || [ "$end_line" -le "$begin_line" ]; then
+      echo "  WARN — $dst has a perma:begin marker with no matching perma:end after it (or a mismatched count). Left COMPLETELY UNTOUCHED — writing here would delete everything after the marker. Fix or remove the marker(s) by hand, then re-run install.sh."
+      return 1
+    fi
+    cp "$dst" "$dst.perma-bak"
+    awk -v s="$src" '
+      /<!-- perma:begin/ {while ((getline line < s) > 0) print line; close(s); skip=1; next}
+      /<!-- perma:end -->/ {skip=0; next}
+      !skip {print}' "$dst" > "$dst.tmp" && mv "$dst.tmp" "$dst"
+  else
+    # No existing marker: this can only ever ADD content (prepend), never destroy any — no
+    # backup needed, because nothing here can lose data.
+    { cat "$src"; echo; cat "$dst" 2>/dev/null; } > "$dst.tmp" && mv "$dst.tmp" "$dst"
+  fi
+}
+
 CMD_MD="$HOME/.claude/CLAUDE.md"
 BLOCK_SRC="$PERMA/runtime/claude-md-block.md"
-if [ -f "$BLOCK_SRC" ]; then
-  if grep -q '<!-- perma:begin' "$CMD_MD" 2>/dev/null; then
-    # replace existing block in place
-    awk -v src="$BLOCK_SRC" '
-      /<!-- perma:begin/ {while ((getline line < src) > 0) print line; close(src); skip=1; next}
-      /<!-- perma:end -->/ {skip=0; next}
-      !skip {print}' "$CMD_MD" > "$CMD_MD.tmp" && mv "$CMD_MD.tmp" "$CMD_MD"
-  else
-    { cat "$BLOCK_SRC"; echo; cat "$CMD_MD" 2>/dev/null; } > "$CMD_MD.tmp" && mv "$CMD_MD.tmp" "$CMD_MD"
-  fi
+if _perma_block_merge "$CMD_MD" "$BLOCK_SRC"; then
   echo "  CLAUDE.md: Permanence block refreshed"
 fi
 
@@ -58,17 +106,7 @@ fi
 AGENTS_BLOCK_SRC="$PERMA/runtime/agents-md-block.md"
 merge_agents_block() {  # merge_agents_block <target-file>
   local dst="$1"
-  [ -f "$AGENTS_BLOCK_SRC" ] || return 0
-  mkdir -p "$(dirname "$dst")"
-  if grep -q '<!-- perma:begin' "$dst" 2>/dev/null; then
-    awk -v src="$AGENTS_BLOCK_SRC" '
-      /<!-- perma:begin/ {while ((getline line < src) > 0) print line; close(src); skip=1; next}
-      /<!-- perma:end -->/ {skip=0; next}
-      !skip {print}' "$dst" > "$dst.tmp" && mv "$dst.tmp" "$dst"
-  else
-    { cat "$AGENTS_BLOCK_SRC"; echo; cat "$dst" 2>/dev/null; } > "$dst.tmp" && mv "$dst.tmp" "$dst"
-  fi
-  echo "  AGENTS.md: Permanence block refreshed at $dst"
+  _perma_block_merge "$dst" "$AGENTS_BLOCK_SRC" && echo "  AGENTS.md: Permanence block refreshed at $dst"
 }
 merge_agents_block "$HOME/.config/agents/AGENTS.md"                 # emerging unifying standard — always
 [ -d "$HOME/.codex" ]   && merge_agents_block "$HOME/.codex/AGENTS.md"    # OpenAI Codex, if installed
@@ -82,7 +120,7 @@ merge_agents_block "$HOME/.config/agents/AGENTS.md"                 # emerging u
 #    (add only if absent; preserve everything else; back up before writing).
 SETTINGS="$HOME/.claude/settings.json"
 if command -v python3 >/dev/null 2>&1; then
-  python3 - "$SETTINGS" "$PERMA" <<'PY'
+  if ! python3 - "$SETTINGS" "$PERMA" <<'PY'
 import json, sys, os, shutil
 path, perma = sys.argv[1], sys.argv[2]
 os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -91,7 +129,8 @@ if os.path.exists(path):
     try:
         data = json.load(open(path))
     except Exception:
-        print("  settings.json: present but unparseable — NOT touched. Add the hook + permission by hand."); sys.exit(0)
+        print("  settings.json: present but unparseable — NOT touched. Add the hook + permission by hand.")
+        sys.exit(1)
 cmd = f"{perma}/runtime/session-start.sh"
 changed = False
 ad = data.setdefault("permissions", {}).setdefault("additionalDirectories", [])
@@ -115,6 +154,10 @@ if changed:
 else:
     print("  settings.json: hook + permission already present")
 PY
+  then
+    echo "  settings.json: FAILED to configure automatically — add the hook + permission by hand (see message above)"
+    INSTALL_FAILED=1
+  fi
 else
   cat <<SETTINGS
   settings.json: python3 not found — add these by hand to ~/.claude/settings.json (MERGE, don't overwrite):
@@ -149,4 +192,8 @@ echo "      then: $PERMA/runtime/search/.venv/bin/python $PERMA/runtime/search/p
 echo "  shutdown nudge: to get a weekday reminder to run /perma-shutdown, enable it:"
 echo "      $PERMA/runtime/shutdown-nudge.sh --install 17:00   (change the time, or --uninstall to remove)"
 
-echo "done."
+if [ "$INSTALL_FAILED" -eq 0 ]; then
+  echo "done."
+else
+  echo "done, WITH FAILURES — see the lines above marked FAILED. Fix those, then re-run install.sh (safe to re-run any time)."
+fi

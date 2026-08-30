@@ -50,8 +50,26 @@ if [ -z "$CLAUDE_CODE_OAUTH_TOKEN" ] && [ -z "$ANTHROPIC_AUTH_TOKEN" ]; then
   exit 78
 fi
 
-# Respect the consolidation lock: a live review owns Permanence right now.
-if [ -f "$PERMA/.perma-lock" ]; then note "SKIPPED: .perma-lock present"; exit 0; fi
+# Respect the consolidation lock: a live review owns Permanence right now — UNLESS it's stale.
+# The lock is only taken and released by a MODEL following prompt instructions
+# (perma-consolidate-review.md), not by anything mechanical; a crash, Ctrl-C, or context
+# exhaustion between those two steps leaves it in place forever, and a bare `exit 0` here would
+# then silently disable this job every night, indefinitely, with nothing surfaced anywhere. That
+# is exactly the "silent-green is worse than a loud failure" principle this script states for
+# itself a few lines below the artefact-assert further down — applied here too. Same 240-minute
+# staleness threshold session-start.sh already uses for the same lock file.
+if [ -f "$PERMA/.perma-lock" ]; then
+  LOCK_TS=$(head -n1 "$PERMA/.perma-lock" 2>/dev/null)
+  case "$LOCK_TS" in (*[!0-9]*|"") LOCK_TS=0;; esac
+  AGE_MIN=$(( ($(date +%s) - LOCK_TS) / 60 ))
+  if [ "$AGE_MIN" -gt 240 ]; then
+    note "SKIPPED: .perma-lock present but STALE (${AGE_MIN}m old, >4h) — most likely a consolidation review crashed or was interrupted without releasing it. Not removed automatically."
+    alert "Nightly consolidate SKIPPED $(date '+%Y-%m-%d'): .perma-lock is ${AGE_MIN}m old (stale, >4h) — every future night will keep skipping until this is resolved. Check whether a /perma-consolidate-review is genuinely still running; if not, it is safe to remove ~/permanence/.perma-lock."
+  else
+    note "SKIPPED: .perma-lock present (${AGE_MIN}m old, within the 4h window) — a review is genuinely in progress."
+  fi
+  exit 0
+fi
 
 note "run start"
 cd "$PERMA" || exit 1
@@ -64,9 +82,15 @@ mkdir -p "$PERMA/.consolidation"
 # match a command the model writes as "~/permanence" (and the bare "git log:*" fallback misses too, because
 # the command begins "git -C"). Headless there is nobody to approve the prompt, so the call is simply
 # denied and the model gives up. Grant BOTH spellings of every path.
+#
+# Write is scoped to .consolidation/ ONLY — this pass is documented (SPEC.md, perma-consolidate.md)
+# as read-only except for its own report file, and an unscoped "Write" would let an unattended,
+# nobody-watching run touch anything, not just its report. Two spellings for the same prefix reason
+# as the Bash grants above.
 "$CLAUDE_BIN" -p "/perma-consolidate" \
   --permission-mode default --model sonnet \
-  --allowedTools "Read" "Glob" "Grep" "Write" \
+  --allowedTools "Read" "Glob" "Grep" \
+    "Write($HOME/permanence/.consolidation/*)" "Write(~/permanence/.consolidation/*)" \
     "Bash(git -C $HOME/permanence log:*)" "Bash(git -C ~/permanence log:*)" "Bash(git log:*)" \
     "Bash(date:*)" "Bash(ls:*)" \
     "Bash(mkdir -p $HOME/permanence/.consolidation:*)" "Bash(mkdir -p ~/permanence/.consolidation:*)" \
