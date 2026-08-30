@@ -98,11 +98,18 @@ _existing_job_command() {  # <label> -> the command an already-scheduled job run
 # belongs to this same Permanence. Returns 1 after explaining, when it belongs to another.
 #   $2 = "remove", or the command this install would schedule.
 _perma_owns_job() {  # <label> <command-or-"remove">
-  local label="$1" intent="$2" home existing
+  local label="$1" intent="$2" home existing existing_bare
   home="$(_perma_home)"
   existing="$(_existing_job_command "$label" 2>/dev/null)"
   [ -n "$existing" ] || return 0
-  case "$existing" in *"$home/"*) return 0 ;; esac
+  # Strip quote characters before comparing: the F09 fix embeds literal "…" around $PERMA in the
+  # generated command (so a space in the path survives launchd re-parsing it), and on darwin the
+  # F15 fix XML-escapes the plist's stored text — neither ever appears in a real filesystem path,
+  # so stripping them can't hide a genuine mismatch, but leaving them in broke this exact
+  # comparison: "$home"/runtime/... contains the substring $home"/, not $home/, so an install's
+  # own job was being reported as belonging to someone else.
+  existing_bare="${existing//\"/}"
+  case "$existing_bare" in *"$home/"*) return 0 ;; esac
   echo "  WARN — '$label' belongs to a DIFFERENT Permanence, so it has been left untouched:"
   echo "      already scheduled: $existing"
   echo "      this Permanence:   $home"
@@ -126,12 +133,18 @@ schedule_task() {
       local plist_label; plist_label="com.$(id -un).${label}"
       local plist_dst="$HOME/Library/LaunchAgents/${plist_label}.plist"
       mkdir -p "$HOME/Library/LaunchAgents"
+      # $command carries redirects (>>, 2>&1) and, since the F09 fix, quote characters — none of
+      # those need XML escaping, but `&` (already present via 2>&1) and a bare `<`/`>` do: unescaped,
+      # `plutil -lint` rejects the plist ("unknown ampersand-escape sequence"), confirmed against the
+      # live install. launchd currently tolerates it, but the file itself is malformed XML.
+      local escaped_command
+      escaped_command="$(printf '%s' "$command" | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g')"
       {
         echo '<?xml version="1.0" encoding="UTF-8"?>'
         echo '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">'
         echo '<plist version="1.0"><dict>'
         echo "  <key>Label</key><string>$plist_label</string>"
-        echo "  <key>ProgramArguments</key><array><string>/bin/bash</string><string>-c</string><string>$command</string></array>"
+        echo "  <key>ProgramArguments</key><array><string>/bin/bash</string><string>-c</string><string>$escaped_command</string></array>"
         case "$spec" in
           daily\ *)
             local hhmm="${spec#daily }"

@@ -96,6 +96,8 @@ Keep it in that file rather than your shell profile — in your profile it can l
 
 **Optional — semantic search (`/perma-search`).** Once you've got a fair bit of accumulated notes, grep-by-keyword starts missing things you remember by *meaning*. `/perma-search "some concept"` finds them — local embeddings, nothing leaves the machine, and it only *points* you at the files (you still read the real markdown). One-time setup builds a small local index (`install.sh` prints the command); after that the post-commit hook keeps it fresh. Like events, skip it until plain grep starts failing you.
 
+**Worth doing early — an encrypted off-machine backup (`runtime/make-backup.sh`).** Your Permanence is one git repository on one machine; if that machine is lost, so is everything in it, unless you've made your own copy. `runtime/make-backup.sh` bundles the whole history, encrypts it to a key only you hold, verifies the round-trip before trusting it, and keeps a few dated copies — the one-time setup and restore steps are in the comment at the top of the script itself. It checks your working tree before bundling and tells you plainly if anything's uncommitted (run `/perma-shutdown` first, or commit by hand, for a backup that covers everything). Not wired into `install.sh` — it's your call whether and how often to run it (a weekly cron/launchd entry alongside the nightly consolidate is a reasonable default once you've got real notes worth losing).
+
 ---
 
 **The honest bit:** the real payoff is *your own* Permanence after a week or two, once it's holding state you'd otherwise lose. The example is just the bridge across the "empty Permanence, can't see the point yet" valley. Get one real stream going and let it accumulate.

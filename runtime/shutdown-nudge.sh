@@ -13,7 +13,6 @@
 set -uo pipefail
 PERMA="${PERMA_DIR:-$HOME/permanence}"
 LABEL="perma-shutdown-nudge"
-SELF="$PERMA/runtime/shutdown-nudge.sh"
 
 notify() {
   local msg="Run /perma-shutdown to get today's open loops into Permanence before you stop."
@@ -35,7 +34,10 @@ case "${1:-notify}" in
     when="${2:-17:00}"
     mkdir -p "$PERMA/runtime/logs"
     source "$PERMA/runtime/schedule-task.sh"
-    schedule_task "$LABEL" "$SELF" "weekdays $when"
+    # Same embedded-quote treatment as install.sh's scheduler calls (F09): $SELF is re-parsed as
+    # a shell command a second time when the job fires, so a space in $PERMA needs to survive
+    # that re-parse rather than word-split it.
+    schedule_task "$LABEL" "\"$PERMA\"/runtime/shutdown-nudge.sh" "weekdays $when"
     ;;
   --uninstall)
     source "$PERMA/runtime/schedule-task.sh"

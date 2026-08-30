@@ -14,6 +14,21 @@ PERMA="${PERMA_DIR:-$HOME/permanence}"
 cd "$PERMA" || exit 1
 TS="$(date '+%Y-%m-%d %H:%M')"
 
+# stat's flags differ entirely between BSD (macOS, what's shipped here) and GNU (most Linux) —
+# `-f` means "format string" on BSD but "filesystem status" on GNU, so a BSD-flavor call either
+# errors or silently prints nothing on Linux, which post-commit's `2>/dev/null || true` then
+# swallows: the inventory rendered with blank dates in arbitrary order, with no error anywhere,
+# against QUICKSTART's stated "works on macOS and Linux with no changes." Try BSD, then GNU.
+_perma_mtime_epoch() {  # <file> -> epoch seconds mtime, or empty
+  stat -f '%m' "$1" 2>/dev/null || stat -c '%Y' "$1" 2>/dev/null
+}
+_perma_mtime_date() {  # <file> -> YYYY-MM-DD, or empty
+  local d
+  d="$(stat -f '%Sm' -t '%Y-%m-%d' "$1" 2>/dev/null)"
+  [ -n "$d" ] && { printf '%s' "$d"; return; }
+  stat -c '%y' "$1" 2>/dev/null | cut -d' ' -f1   # GNU's %y is "YYYY-MM-DD HH:MM:SS.nnn ±ZZZZ"
+}
+
 stream_index() {  # $1 = stream dir (relative to Permanence root) — list newest-first by mtime
   local dir="$1"
   {
@@ -24,7 +39,7 @@ stream_index() {  # $1 = stream dir (relative to Permanence root) — list newes
       -type f ! -name 'CONTENTS.md' ! -name '.DS_Store' ! -name '.perma-lock' -print 2>/dev/null \
       | while IFS= read -r f; do
           rel="${f#"$dir"/}"; [ "$rel" = "$f" ] && rel="$f"
-          printf '%s\t%s\t%s\n' "$(stat -f '%m' "$f" 2>/dev/null)" "$(stat -f '%Sm' -t '%Y-%m-%d' "$f" 2>/dev/null)" "$rel"
+          printf '%s\t%s\t%s\n' "$(_perma_mtime_epoch "$f")" "$(_perma_mtime_date "$f")" "$rel"
         done | sort -rn | while IFS=$'\t' read -r _ d rel; do
           printf -- '- %s — %s\n' "$rel" "$d"
         done
@@ -38,13 +53,13 @@ full_index() {  # whole Permanence, grouped by folder, alphabetical
     printf '> Dated inventory. **Navigate via the VS Code Explorer** (add `~/permanence` as a folder).\n\n'
     printf '## Root\n'
     find . -maxdepth 1 -type f ! -name 'CONTENTS.md' ! -name '.DS_Store' ! -name '.perma-lock' -print | sed 's|^\./||' | sort \
-      | while IFS= read -r f; do printf -- '- %s — %s\n' "$f" "$(stat -f '%Sm' -t '%Y-%m-%d' "$f" 2>/dev/null)"; done
+      | while IFS= read -r f; do printf -- '- %s — %s\n' "$f" "$(_perma_mtime_date "$f")"; done
     for d in $(find . \( -name .git -o -name .consolidation \) -prune -o -maxdepth 2 -mindepth 1 -type d -print | sed 's|^\./||' | sort); do
       case "$d" in (.git*|.consolidation*|runtime/*) continue;; esac
       [ -z "$(find "$d" -maxdepth 1 -type f ! -name 'CONTENTS.md' ! -name '.DS_Store' | head -1)" ] && continue
       printf '\n## %s\n' "$d"
       find "$d" -maxdepth 1 -type f ! -name 'CONTENTS.md' ! -name '.DS_Store' -print | sort \
-        | while IFS= read -r f; do printf -- '- %s — %s\n' "$f" "$(stat -f '%Sm' -t '%Y-%m-%d' "$f" 2>/dev/null)"; done
+        | while IFS= read -r f; do printf -- '- %s — %s\n' "$f" "$(_perma_mtime_date "$f")"; done
     done
   } > "CONTENTS.md"
 }

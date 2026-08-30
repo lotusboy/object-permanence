@@ -36,6 +36,21 @@ mkdir -p "$(dirname "$OUT")"
 TMP=$(mktemp /tmp/permanence.bundle.XXXXXX)
 VER=$(mktemp /tmp/permanence.verify.XXXXXX)
 trap 'rm -f "$TMP" "$VER"' EXIT
+
+# Pre-flight: a git bundle only ever captures COMMITTED history. Bundling silently while the
+# tree is dirty produces a backup that omits whatever hasn't been committed yet — and without
+# this check, the "round-trip verified" line below would say the backup succeeded with no
+# mention that today's still-uncommitted notes are not in it. Dirty is not fatal (a backup of
+# everything-but-today still beats no backup), but it must be loud, and the run must not prune
+# the previous backup — that older one may be the only copy still covering the missing files.
+DIRTY="$(git -C "$PERMA" status --porcelain 2>/dev/null)"
+if [ -n "$DIRTY" ]; then
+  echo "WARN  ~/permanence has uncommitted changes — this backup will NOT include them:"
+  printf '%s
+' "$DIRTY" | sed 's/^/      /'
+  echo "      Run /perma-shutdown (or commit by hand) first for a backup that covers everything."
+fi
+
 git -C "$PERMA" bundle create "$TMP" --all
 git -C "$PERMA" bundle verify "$TMP" >/dev/null
 age -r "$RECIP" -o "$OUT.tmp" "$TMP"
@@ -43,7 +58,11 @@ mv "$OUT.tmp" "$OUT"                         # atomic swap — never clobber a g
 # round-trip: decrypt the blob we just wrote + verify it restores, before trusting it
 age -d -i "$KEY" -o "$VER" "$OUT"
 git -C "$PERMA" bundle verify "$VER" >/dev/null
-echo "OK  wrote $OUT ($(du -h "$OUT" | cut -f1)) · recipient $RECIP · round-trip verified"
+if [ -n "$DIRTY" ]; then
+  echo "OK  wrote $OUT ($(du -h "$OUT" | cut -f1)) · recipient $RECIP · round-trip verified — COMMITTED HISTORY ONLY, see WARN above"
+else
+  echo "OK  wrote $OUT ($(du -h "$OUT" | cut -f1)) · recipient $RECIP · round-trip verified"
+fi
 
 # --- second artefact: the ~/.claude state install.sh cannot rebuild ---------------------------
 # Allowlist, never a blanket tar of ~/.claude: that directory also holds sessions/, history.jsonl,
@@ -74,7 +93,13 @@ else
   echo "WARN  no ~/.claude state paths matched — state blob NOT written"
 fi
 # Retain only the last $KEEP dated bundles locally; prune older ones (newest-first by mtime).
-ls -1t "$HOME/Backups"/perma-*.bundle.age 2>/dev/null | tail -n +$((KEEP+1)) | while IFS= read -r old; do
-  rm -f "$old" && echo "    pruned older local backup: $(basename "$old")"
-done
+# Skipped entirely on a dirty run: this run's own backup is incomplete, so the previous backup
+# may be the only copy that still covers what's missing here — never delete it in that case.
+if [ -n "$DIRTY" ]; then
+  echo "      (skipping prune of older backups — this run's backup was incomplete; kept as extra insurance)"
+else
+  ls -1t "$HOME/Backups"/perma-*.bundle.age 2>/dev/null | tail -n +$((KEEP+1)) | while IFS= read -r old; do
+    rm -f "$old" && echo "    pruned older local backup: $(basename "$old")"
+  done
+fi
 echo "    local retention: newest $KEEP kept in ~/Backups. Upload THIS file to your Drive and keep 3 there (real off-machine retention)."

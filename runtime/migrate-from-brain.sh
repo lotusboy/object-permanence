@@ -65,7 +65,18 @@ fi
 # 5. Copy in the freshly rebranded machinery, same paths update.sh refreshes — the renamed
 #    folder's own git history is untouched (this is a plain file copy, not a checkout), so the
 #    owner still has every old commit; nothing here is destructive to history, only to the
-#    working-tree copies of these specific paths.
+#    working-tree copies of these specific paths. Guard those working-tree copies too: an
+#    uncommitted edit under any of them would otherwise be deleted by the rm -rf below with no
+#    way back (mirrors the same clean-tree requirement update.sh already enforces).
+if git -C "$NEW" rev-parse --git-dir >/dev/null 2>&1; then
+  if ! git -C "$NEW" diff --quiet -- runtime .githooks templates SPEC.md README.md QUICKSTART.md CHANGELOG.md 2>/dev/null      || ! git -C "$NEW" diff --cached --quiet -- runtime .githooks templates SPEC.md README.md QUICKSTART.md CHANGELOG.md 2>/dev/null; then
+    echo "ERROR: $NEW has uncommitted changes under runtime/, .githooks/, templates/, SPEC.md, README.md, QUICKSTART.md or CHANGELOG.md."
+    echo "       This step deletes and replaces those paths — commit or stash first, then re-run."
+    exit 1
+  fi
+else
+  echo "  NOTE: $NEW has no git history yet, so local edits under runtime/.githooks/templates/SPEC.md/README.md/QUICKSTART.md/CHANGELOG.md cannot be checked and will be overwritten by this step."
+fi
 for p in runtime .githooks templates SPEC.md README.md QUICKSTART.md CHANGELOG.md; do
   rm -rf "${NEW:?}/${p:?}"
   cp -R "$SRC/$p" "$NEW/$p"
@@ -81,11 +92,23 @@ echo "  removed old ~/.claude/commands/brain-*.md"
 
 # 7. Strip the OLD delimited CLAUDE.md block — the new install.sh looks for perma:begin/end
 #    markers and won't find/replace this one, so left alone it would just sit there stale.
+#    Guarded the same way as install.sh's own block-merge: a begin marker with no matching end
+#    (or a mismatched count) is left completely untouched rather than risking deleting
+#    everything after it, and a backup is taken before any change that is made.
 CMD_MD="$HOME/.claude/CLAUDE.md"
 if [ -f "$CMD_MD" ] && grep -q '<!-- brain:begin' "$CMD_MD"; then
-  awk '/<!-- brain:begin/{skip=1;next} /<!-- brain:end -->/{skip=0;next} !skip' "$CMD_MD" > "$CMD_MD.tmp" \
-    && mv "$CMD_MD.tmp" "$CMD_MD"
-  echo "  stripped the old brain:begin/end CLAUDE.md block"
+  BEGINS=$(grep -c '<!-- brain:begin' "$CMD_MD")
+  ENDS=$(grep -c '<!-- brain:end -->' "$CMD_MD")
+  BEGIN_LINE=$(grep -n '<!-- brain:begin' "$CMD_MD" | head -1 | cut -d: -f1)
+  END_LINE=$(grep -n '<!-- brain:end -->' "$CMD_MD" | head -1 | cut -d: -f1)
+  if [ "$BEGINS" -ne "$ENDS" ] || [ -z "$END_LINE" ] || [ "$END_LINE" -le "$BEGIN_LINE" ]; then
+    echo "  WARN — $CMD_MD has a brain:begin marker with no matching brain:end after it. Left untouched — remove the old block by hand, then re-run."
+  else
+    cp "$CMD_MD" "$CMD_MD.pre-migration-block-bak"
+    awk '/<!-- brain:begin/{skip=1;next} /<!-- brain:end -->/{skip=0;next} !skip' "$CMD_MD" > "$CMD_MD.tmp" \
+      && mv "$CMD_MD.tmp" "$CMD_MD"
+    echo "  stripped the old brain:begin/end CLAUDE.md block (backup: $CMD_MD.pre-migration-block-bak)"
+  fi
 fi
 
 # 8. Strip OLD settings.json entries pointing at the now-gone $OLD path (new install.sh adds the
