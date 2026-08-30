@@ -15,6 +15,20 @@ streams, never applied without your say-so (SPEC.md invariant 5).
 
 ## [Unreleased]
 
+## [1.0.5] — README polish
+
+Wording and structure only — no behaviour change, no migration notes.
+
+- Dropped the "— a starter" subtitle.
+- Added an attribution/license line under the title.
+- Added a concrete before/after example right under the pitch, showing what
+  opening a session looks like without this tool versus with it.
+- Added a small diagram to "The loops" showing the SessionStart →
+  UserPromptSubmit → read → (material shift) → write cycle.
+- Added a "Why 'Object Permanence'" section — the ADHD-community origin of
+  the name, and the author's own reason for building it, matching what
+  axis-engineering's README already says about him.
+
 ## [1.0.4] — the product is named Object Permanence
 
 Wording only — no behaviour change, no migration notes. Titles, the README's
