@@ -1,8 +1,18 @@
-# Object Permanence — a starter
+# Object Permanence
+
+> Created by **Steven Loftus** (2026) — Licensed under [GPLv3](./LICENSE)
 
 You close the laptop, come back tomorrow, and your AI assistant remembers nothing — not the decision you made, not why you ruled out the other approach, not who's waiting on what. So you spend the first ten minutes of every session re-explaining the project to it, or you don't, and it quietly repeats a mistake you already fixed once.
 
 **Object Permanence is the fix**: your externalised working memory, in plain markdown + git. It holds the state of your ongoing projects — what's happening, who's involved, what's decided, what's open — in files that survive across sessions and days, so you (and Claude) pick up exactly where you left off instead of rebuilding context every time. It's for any kind of ongoing project you run *with* an AI assistant, not just software — a client engagement, a programme you're managing, a piece of writing — anywhere you'd otherwise be the one holding all the state in your head.
+
+**Without it** — you open a session on a project you touched last week:
+
+> You explain it from scratch: what it's for, what's decided, who's waiting on what, the approach you already tried and ruled out. Ten minutes gone before any real work starts — and if you skip the explanation, the AI quietly repeats the mistake you already fixed once.
+
+**With it** — you open the same session:
+
+> Claude has already read `PROJECT.md`, the open `QUESTIONS.md`, and the tail of `LOG.md` before your first message lands. It picks straight up where you left off — the decision, the person waiting on it, the dead end you already ruled out — without you saying a word about it.
 
 This isn't a demo. It's the author's actual daily driver, and it holds up under real weight: **14 concurrent project streams** tracked side by side — consulting work, internal programmes, personal projects — with one single stream alone carrying **11,000+ lines of chronological history across nearly 500 dated entries**, built up entirely through ordinary daily conversation with Claude, no special effort. Several streams run 100–200+ line `PEOPLE.md` files, actually applying the fact/inference discipline below to real working relationships over months, not a one-off example. This repo ships with **none of that** — just the machinery and conventions, plus a worked example in a far domain (home decorating/DIY) so you can see the shape in action without anyone's real project spilling into a public template.
 
@@ -59,6 +69,16 @@ A folder is a stream exactly when it has a `PROJECT.md` — that's what the tool
 
 ## The loops
 
+```mermaid
+flowchart LR
+    A[Open a registered project] --> B[SessionStart hook\nputs orientation into context]
+    B --> C[Your first message]
+    C --> D[UserPromptSubmit hook\nforces the read: PROJECT + QUESTIONS + LOG tail]
+    D --> E[Claude answers, already oriented]
+    E -->|something material shifts| F[Claude updates the stream\nno separate writer process]
+    F -.next session.-> A
+```
+
 - **Write / read — how "automatic" actually works.** No daemon watches your conversation; it's two hooks plus one instruction, every session:
   1. **SessionStart** (`session-start.sh`) fires when you open a registered project — resolves the stream from `_meta/REGISTRY.md` and puts orientation into context.
   2. **UserPromptSubmit** (`session-load.sh`) fires on your first message — this is the *reliable* trigger. A passive SessionStart note is easy for a model to skim past; this one forces the instruction onto the very message Claude is about to answer, so it actually reads `PROJECT.md` / `QUESTIONS.md` / the `LOG.md` tail before responding.
@@ -67,6 +87,12 @@ A folder is a stream exactly when it has a `PROJECT.md` — that's what the tool
   Worth being honest about the limit: this is instruction-following, not a guarantee — nothing mechanically enforces it. `/perma-consolidate` exists partly as the safety net for exactly that gap, catching drift if an update ever gets missed.
 - **Consolidate** (`/perma-consolidate` → `/perma-consolidate-review`) — a periodic tidy: catches stale PROJECTs, closes aged inferences, dedupes. See `example/.consolidation/REPORT-example.md`.
 - **Orchestrate** (`/perma-orchestrate`) — finds ideas converging across streams you didn't connect. See `example/_meta/emergent.md`. (Only useful once you have a few streams — ignore it at first.)
+
+## Why "Object Permanence"
+
+The name is the ADHD-community term for the exact failure mode this tool exists to fix: things — and people — ceasing to exist the moment they're out of sight or out of context. The author has ADHD; this tool started as the externalisation of a compensation he already needed for himself. The insight that made it worth building for anyone else: an AI assistant has the *identical* failure mode, once, every single session, by design — no memory of anything not currently in front of it. Give both of you a place outside your own head where state actually persists, and "out of sight, out of mind" stops being inevitable for either of you.
+
+Companion project: [`axis-engineering`](https://github.com/lotusboy/axis-engineering) — the reasoning methodology this tool is built on, from the same author, born from the same neurodivergent cognitive profile.
 
 ## Optional extras (opt-in — `install.sh` prints how to switch each on; skip until you want them)
 
