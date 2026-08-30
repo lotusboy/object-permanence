@@ -1,6 +1,6 @@
 # Changelog
 
-Releases of Permanence **machinery** — `runtime/`, `.githooks/`, `templates/`, and the
+Releases of Object Permanence **machinery** — `runtime/`, `.githooks/`, `templates/`, and the
 docs. Your own streams, `_meta/REGISTRY.md`, and notes are never part of a release;
 they're yours, not the template's.
 
@@ -14,6 +14,17 @@ refreshes machinery as usual. Migration notes are read and *proposed* against yo
 streams, never applied without your say-so (SPEC.md invariant 5).
 
 ## [Unreleased]
+
+## [1.0.4] — the product is named Object Permanence
+
+Wording only — no behaviour change, no migration notes. Titles, the README's
+opening pitch, and mentions of pulling a machinery release now say **Object
+Permanence** — the actual product name, matching the repo. Everywhere else
+(operational text: "your Permanence", "at `~/permanence`", "Permanence reads
+your project context", trigger phrases like "good night Permanence") still
+says **Permanence** on purpose — that's the data store itself, a different
+thing from the product, and the shorter word is what you'd actually type or
+say to it day to day.
 
 ## [1.0.3] — fixes from an Axis Engineering Two-Pass review
 
