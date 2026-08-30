@@ -1,4 +1,4 @@
-# Using Permanence with something other than Claude Code
+# Using Object Permanence with something other than Claude Code
 
 Permanence itself — the streams, the conventions, the git history — is just plain markdown and shell
 scripts. Nothing about it requires Claude Code. What differs between tools is how much of the *automatic*
