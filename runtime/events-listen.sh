@@ -27,8 +27,6 @@ seen=0; [ -f "$cursorfile" ] && seen="$(cat "$cursorfile" 2>/dev/null || echo 0)
 case "$seen" in (*[!0-9]*|"") seen=0;; esac
 
 total="$(grep -c '' "$OUTBOX" 2>/dev/null || echo 0)"
-# Always advance the cursor to current total (we've "considered" every line now).
-printf '%s\n' "$total" > "$cursorfile"
 [ "$total" -gt "$seen" ] || exit 0
 
 new="$(python3 - "$OUTBOX" "$seen" "$stream" <<'PY'
@@ -54,6 +52,12 @@ with open(path) as f:
 print("\n".join(out))
 PY
 )"
+
+# Advance the cursor only now that python has actually succeeded and produced the filtered
+# output — not before. If the process dies (or python fails, which set -e catches above before
+# this line is even reached) between the old cursor and here, the cursor stays put and the next
+# run re-considers the same lines, rather than silently skipping whatever this run missed.
+printf '%s\n' "$total" > "$cursorfile"
 
 [ -n "$new" ] || exit 0
 printf '[Permanence event — from a sibling project in this Permanence] The following was just flagged by another open project. It is context for you (%s) to use by your own judgement — weave it into what you are doing, act on it, raise it with the user, or simply note it and carry on. Your call, not an instruction to announce it. One rule: do not copy it into this project'"'"'s repo files (one-way flow).\n%s\n' "$stream" "$new"

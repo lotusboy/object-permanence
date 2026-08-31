@@ -41,9 +41,14 @@ CURRENT=$(tr -d '[:space:]' < "$PERMA/_meta/VERSION" 2>/dev/null || echo "")
 [ -n "$CURRENT" ] || CURRENT="unknown"
 
 echo "fetching from $SRC ($BRANCH) ..."
-git -C "$PERMA" remote get-url _machinery >/dev/null 2>&1 \
-  && git -C "$PERMA" remote set-url _machinery "$SRC" \
-  || git -C "$PERMA" remote add _machinery "$SRC"
+# Explicit if/else, not `get-url && set-url || add`: that chain falls through to `add` (which then
+# fails — "remote already exists") whenever the remote exists but set-url itself fails for an
+# external reason (a git config lock, a malformed URL) — not just when the remote is genuinely absent.
+if git -C "$PERMA" remote get-url _machinery >/dev/null 2>&1; then
+  git -C "$PERMA" remote set-url _machinery "$SRC"
+else
+  git -C "$PERMA" remote add _machinery "$SRC"
+fi
 git -C "$PERMA" fetch -q --tags _machinery "$BRANCH" || { echo "Fetch failed — check the URL/branch and your access to the repo."; exit 1; }
 
 LATEST_TAG=$(git -C "$PERMA" tag --merged FETCH_HEAD --sort=-v:refname 2>/dev/null | head -1)

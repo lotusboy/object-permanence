@@ -63,6 +63,10 @@ metrics_json() {  # gather raw numbers for ONE repo → JSON line
   testfuncs=$(git -C "$R" grep -hE '^[[:space:]]*def test_' -- '*.py' 2>/dev/null | wc -l | tr -d ' ')
   doc=$(git -C "$R" ls-files '*.md' | sed '/^$/d' | xargs -I{} wc -l "$R/{}" 2>/dev/null | awk '{s+=$1} END{print s+0}')
   read -r big bigf < <(printf '%s\n' "$src" | sed '/^$/d' | xargs -I{} wc -l "$R/{}" 2>/dev/null | sort -rn | awk 'NR==1{print $1" "$2}')
+  # A repo with zero .py source files (this repo itself, mostly shell) leaves $src empty,
+  # so the read above returns empty strings — int("") on the Python side then raises an
+  # unhandled ValueError and aborts the whole scan for that repo with no report.
+  big="${big:-0}"; bigf="${bigf:-}"
   commits=$(git -C "$R" rev-list --count HEAD)
   topn=$(git -C "$R" shortlog -sn HEAD | head -1 | awk '{print $1}')
   topauthor=$(git -C "$R" shortlog -sn HEAD | head -1 | sed 's/^[[:space:]]*[0-9]*[[:space:]]*//')

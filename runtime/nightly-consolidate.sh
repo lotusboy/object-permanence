@@ -81,19 +81,21 @@ mkdir -p "$PERMA/.consolidation"
 # --allowedTools entries are matched as LITERAL PREFIXES, so a granted "$HOME/permanence" path can never
 # match a command the model writes as "~/permanence" (and the bare "git log:*" fallback misses too, because
 # the command begins "git -C"). Headless there is nobody to approve the prompt, so the call is simply
-# denied and the model gives up. Grant BOTH spellings of every path.
+# denied and the model gives up. Grant all THREE spellings of every path: the two literal ones plus
+# "$PERMA" itself — the first two alone silently broke any install using PERMA_DIR to point somewhere
+# other than $HOME/permanence, since neither literal matches a custom location.
 #
 # Write is scoped to .consolidation/ ONLY — this pass is documented (SPEC.md, perma-consolidate.md)
 # as read-only except for its own report file, and an unscoped "Write" would let an unattended,
-# nobody-watching run touch anything, not just its report. Two spellings for the same prefix reason
-# as the Bash grants above.
+# nobody-watching run touch anything, not just its report. Same three-spelling reason as the Bash
+# grants below.
 "$CLAUDE_BIN" -p "/perma-consolidate" \
   --permission-mode default --model sonnet \
   --allowedTools "Read" "Glob" "Grep" \
-    "Write($HOME/permanence/.consolidation/*)" "Write(~/permanence/.consolidation/*)" \
-    "Bash(git -C $HOME/permanence log:*)" "Bash(git -C ~/permanence log:*)" "Bash(git log:*)" \
+    "Write($PERMA/.consolidation/*)" "Write($HOME/permanence/.consolidation/*)" "Write(~/permanence/.consolidation/*)" \
+    "Bash(git -C $PERMA log:*)" "Bash(git -C $HOME/permanence log:*)" "Bash(git -C ~/permanence log:*)" "Bash(git log:*)" \
     "Bash(date:*)" "Bash(ls:*)" \
-    "Bash(mkdir -p $HOME/permanence/.consolidation:*)" "Bash(mkdir -p ~/permanence/.consolidation:*)" \
+    "Bash(mkdir -p $PERMA/.consolidation:*)" "Bash(mkdir -p $HOME/permanence/.consolidation:*)" "Bash(mkdir -p ~/permanence/.consolidation:*)" \
   >> "$LOG" 2>&1
 RC=$?
 
