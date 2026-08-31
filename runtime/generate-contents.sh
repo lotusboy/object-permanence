@@ -54,13 +54,17 @@ full_index() {  # whole Permanence, grouped by folder, alphabetical
     printf '## Root\n'
     find . -maxdepth 1 -type f ! -name 'CONTENTS.md' ! -name '.DS_Store' ! -name '.perma-lock' -print | sed 's|^\./||' | sort \
       | while IFS= read -r f; do printf -- '- %s — %s\n' "$f" "$(_perma_mtime_date "$f")"; done
-    for d in $(find . \( -name .git -o -name .consolidation \) -prune -o -maxdepth 2 -mindepth 1 -type d -print | sed 's|^\./||' | sort); do
-      case "$d" in (.git*|.consolidation*|runtime/*) continue;; esac
-      [ -z "$(find "$d" -maxdepth 1 -type f ! -name 'CONTENTS.md' ! -name '.DS_Store' | head -1)" ] && continue
-      printf '\n## %s\n' "$d"
-      find "$d" -maxdepth 1 -type f ! -name 'CONTENTS.md' ! -name '.DS_Store' -print | sort \
-        | while IFS= read -r f; do printf -- '- %s — %s\n' "$f" "$(_perma_mtime_date "$f")"; done
-    done
+    # Piped into a while-read, not `for d in $(...)`: the old unquoted command substitution
+    # word-split on any space in a stream directory name, truncating it before it ever reached
+    # `find "$d"`. Same fix pattern already used for the Root listing two lines above.
+    find . \( -name .git -o -name .consolidation \) -prune -o -maxdepth 2 -mindepth 1 -type d -print | sed 's|^\./||' | sort \
+      | while IFS= read -r d; do
+          case "$d" in (.git*|.consolidation*|runtime/*) continue;; esac
+          [ -z "$(find "$d" -maxdepth 1 -type f ! -name 'CONTENTS.md' ! -name '.DS_Store' | head -1)" ] && continue
+          printf '\n## %s\n' "$d"
+          find "$d" -maxdepth 1 -type f ! -name 'CONTENTS.md' ! -name '.DS_Store' -print | sort \
+            | while IFS= read -r f; do printf -- '- %s — %s\n' "$f" "$(_perma_mtime_date "$f")"; done
+        done
   } > "CONTENTS.md"
 }
 

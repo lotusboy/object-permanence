@@ -15,6 +15,35 @@ streams, never applied without your say-so (SPEC.md invariant 5).
 
 ## [Unreleased]
 
+## [1.0.6] — fixes from a second independent review
+
+Google Antigravity ran its own deep review of this repo and shared seven findings.
+Each was independently verified against the actual code before anything was
+changed; six were real and are fixed here (one, on inspection, turned out to
+already be fixed in `stop-listen.sh` — only `events-listen.sh` had the gap). No
+migration notes — bug fixes only, no change to the data model or canonical file
+shapes.
+
+- **`cogdebt-scan.sh`** crashed with an unhandled Python `ValueError` when scanning
+  a repository with zero `.py` files (true for several genuinely-watchable repos,
+  including this one). Now defaults cleanly to an empty report instead.
+- **`nightly-consolidate.sh`**'s `--allowedTools` grant hardcoded `$HOME/permanence`
+  instead of the `$PERMA` variable that actually respects `PERMA_DIR` — a custom
+  install location got permission-denied on every unattended run. This was a gap
+  in my own `v1.0.3` fix, which copied a pre-existing pattern without checking it.
+- **`update.sh`**'s remote setup (`get-url && set-url || add`) could fall through
+  to `add` — which then fails, "remote already exists" — whenever the remote
+  existed but `set-url` failed for an external reason. Now an explicit `if/else`.
+- **`generate-contents.sh`** word-split on any space in a stream directory name via
+  an unquoted `for d in $(...)`. Now piped into a `while read` loop, matching the
+  same fix already applied to `.githooks/post-commit` in `v1.0.3`.
+- **CI's redaction scan** passed an unquoted file list to `grep`, with the same
+  space-splitting exposure. Now null-delimited via `git ls-files -z | xargs -0`.
+- **`events-listen.sh`** advanced its delivery cursor *before* confirming the
+  message was actually parsed and surfaced — a crash between those two steps
+  silently dropped that cross-project event forever. Now advances only after
+  the parse succeeds; `stop-listen.sh` already had the correct order.
+
 ## [1.0.5] — README polish
 
 Wording and structure only — no behaviour change, no migration notes.

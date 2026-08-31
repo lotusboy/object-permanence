@@ -45,22 +45,24 @@ jobs:
       - name: Scan for accidentally-personal content
         run: |
           set -euo pipefail
-          FILES=$(git ls-files '*.md' '*.sh' '*.py' '*.txt' ':!:example/**')
           FAIL=0
+          # -z / xargs -0 throughout: the old bare, unquoted $FILES word-split on any space in a
+          # committed filename. Low real-world odds against this repo's own file list, but cheap
+          # and correct to fix.
 
           # the pre-rebrand machine username this project's history involved — should never appear
-          if grep -nF "sloftus" $FILES; then
+          if git ls-files -z '*.md' '*.sh' '*.py' '*.txt' ':!:example/**' | xargs -0 grep -nF "sloftus"; then
             echo "Found a stale 'sloftus' username reference"; FAIL=1
           fi
 
           # email addresses, excluding the known-safe ones this repo legitimately uses
-          if grep -nE '[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}' $FILES \
+          if git ls-files -z '*.md' '*.sh' '*.py' '*.txt' ':!:example/**' | xargs -0 grep -nE '[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}' \
               | grep -vE 'ci@example\.com|users\.noreply\.github\.com|@fsf\.org'; then
             echo "Found an email address outside the allow-list"; FAIL=1
           fi
 
           # common secret/API-key shapes
-          if grep -nE '(AKIA[0-9A-Z]{16}|sk-[a-zA-Z0-9]{20,}|ghp_[a-zA-Z0-9]{36})' $FILES; then
+          if git ls-files -z '*.md' '*.sh' '*.py' '*.txt' ':!:example/**' | xargs -0 grep -nE '(AKIA[0-9A-Z]{16}|sk-[a-zA-Z0-9]{20,}|ghp_[a-zA-Z0-9]{36})'; then
             echo "Found a string matching a known API-key pattern"; FAIL=1
           fi
 
