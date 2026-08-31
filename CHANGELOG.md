@@ -15,14 +15,16 @@ streams, never applied without your say-so (SPEC.md invariant 5).
 
 ## [Unreleased]
 
-## [1.0.6] — fixes from a second independent review
+## [1.0.6] — fixes from a second independent Axis Engineering review
 
-Google Antigravity ran its own deep review of this repo and shared seven findings.
-Each was independently verified against the actual code before anything was
-changed; six were real and are fixed here (one, on inspection, turned out to
-already be fixed in `stop-listen.sh` — only `events-listen.sh` had the gap). No
-migration notes — bug fixes only, no change to the data model or canonical file
-shapes.
+Google Antigravity ran its own Two-Pass Axis Engineering review of this repo — the
+same methodology and protocol as the `v1.0.3` review, independently applied by a
+different tool — and shared seven findings. The run is documented at
+`axis/runs/2026-08-31-object-permanence-deep-review/`. Each finding was
+independently re-verified against the actual code before anything was changed
+here; six were real and are fixed (one, on inspection, turned out to already be
+fixed in `stop-listen.sh` — only `events-listen.sh` had the gap). No migration
+notes — bug fixes only, no change to the data model or canonical file shapes.
 
 - **`cogdebt-scan.sh`** crashed with an unhandled Python `ValueError` when scanning
   a repository with zero `.py` files (true for several genuinely-watchable repos,
