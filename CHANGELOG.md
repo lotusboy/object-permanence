@@ -15,6 +15,18 @@ streams, never applied without your say-so (SPEC.md invariant 5).
 
 ## [Unreleased]
 
+## [1.0.8] — README opening, revisited
+
+Wording only — no behaviour change, no migration notes.
+
+Added a one-line tagline right after the title, naming what the tool is before the
+problem narrative makes the case for it (matching the pattern `axis-engineering`'s
+README already uses). Broadened the opening problem paragraph: it previously framed
+the whole problem as the AI's amnesia; it now also names that the owner forgets too
+across several fast-moving projects, and that nothing previously handed the same
+picture back to *them*, not just to the AI. "Is the fix" now says "both you and the
+AI" instead of burying that in a parenthetical.
+
 ## [1.0.7] — the repo is renamed to `permanence`
 
 Wording and repo-identity only — no behaviour change, no migration notes.

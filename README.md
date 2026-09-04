@@ -2,9 +2,11 @@
 
 > Created by **Steven Loftus** (2026) — Licensed under [GPLv3](./LICENSE)
 
-You close the laptop, come back tomorrow, and your AI assistant remembers nothing — not the decision you made, not why you ruled out the other approach, not who's waiting on what. So you spend the first ten minutes of every session re-explaining the project to it, or you don't, and it quietly repeats a mistake you already fixed once.
+**Permanence is externalised working memory — for you and whichever AI you're using, so neither of you starts from zero, every session.**
 
-**Permanence is the fix**: your externalised working memory, in plain markdown + git. It holds the state of your ongoing projects — what's happening, who's involved, what's decided, what's open — in files that survive across sessions and days, so you (and Claude) pick up exactly where you left off instead of rebuilding context every time. It's for any kind of ongoing project you run *with* an AI assistant, not just software — a client engagement, a programme you're managing, a piece of writing — anywhere you'd otherwise be the one holding all the state in your head.
+You close the laptop, come back tomorrow, and your AI assistant remembers nothing — not the decision you made, not why you ruled out the other approach, not who's waiting on what. Running one project, that's a nuisance. Running several at once — client work, internal programmes, your own projects, each moving at a different pace — you forget the details too, especially if holding a dozen things in your head at once was never going to work in the first place. So you spend the first ten minutes of every session re-explaining the project to the AI, or you don't, and it quietly repeats a mistake you already fixed once — and even then, nothing hands the same picture back to *you* when you're the one who opens the laptop.
+
+**Permanence is the fix**: it holds the state of your ongoing projects — what's happening, who's involved, what's decided, what's open — in plain markdown + git, so both you and the AI pick up exactly where you left off instead of rebuilding context every time. It's for any kind of ongoing project you run *with* an AI assistant, not just software — a client engagement, a programme you're managing, a piece of writing — anywhere you'd otherwise be the one holding all the state in your head.
 
 **Without it** — you open a session on a project you touched last week:
 
