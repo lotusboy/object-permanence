@@ -1,4 +1,4 @@
-# SPEC — Object Permanence, harness-independently
+# SPEC — Permanence, harness-independently
 
 > The contract that lets any capable agent rebuild and operate this system: clone → read this → bind §3 to the target harness. Three layers: data model, invariants, runtime contract. The Claude Code binding (the current implementation) is noted at the end of §3. Conventions in full: [README.md](./README.md). Written 2026-06-11 (hardening item 5).
 

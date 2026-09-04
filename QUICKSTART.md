@@ -7,7 +7,7 @@ Five steps to a working Permanence. ~10 minutes.
 From GitHub:
 
 ```bash
-git clone https://github.com/lotusboy/object-permanence.git ~/permanence
+git clone https://github.com/lotusboy/permanence.git ~/permanence
 cd ~/permanence && rm -rf .git && git init && git add -A && git commit -m "My Permanence"
 ```
 
@@ -18,9 +18,8 @@ cp -R <the-folder> ~/permanence
 cd ~/permanence && rm -rf .git && git init && git add -A && git commit -m "My Permanence"
 ```
 
-**Why the directory name changes.** The repo is called `object-permanence`; the install location is
-always `~/permanence`, which every script assumes. That's why the clone command names its target
-explicitly. (Override with `PERMA_DIR` only if you really need it elsewhere.)
+**The install location is always `~/permanence`** — every script assumes it. (Override with
+`PERMA_DIR` only if you genuinely need it elsewhere.)
 
 **Why `.git` gets thrown away.** Your Permanence fills with private notes about real projects and real
 people, so it becomes *your* repository with *your* history — not a fork of the template, and never

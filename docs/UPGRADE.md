@@ -1,4 +1,4 @@
-# Upgrading Object Permanence
+# Upgrading Permanence
 
 Two separate things, easy to conflate:
 

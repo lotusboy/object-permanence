@@ -1,10 +1,10 @@
 ---
-description: Upgrade Object Permanence's machinery to the latest template release — shows the plan, negotiates any customization conflicts, proposes (never auto-applies) any stream-affecting migration notes, then applies on your say-so. One command, always interactive — there's no unattended/scheduled variant.
+description: Upgrade Permanence's machinery to the latest template release — shows the plan, negotiates any customization conflicts, proposes (never auto-applies) any stream-affecting migration notes, then applies on your say-so. One command, always interactive — there's no unattended/scheduled variant.
 ---
 
-# Object Permanence — Upgrade
+# Permanence — Upgrade
 
-The single entry point for pulling a new Object Permanence release: shows you what's changing before anything
+The single entry point for pulling a new Permanence release: shows you what's changing before anything
 changes, handles the case where you've customized a machinery file the template also touched, and reads
 `CHANGELOG.md` for anything that needs a look at your own streams — proposing, never applying, per
 SPEC.md invariant 5 (human ratification for state-changing maintenance).

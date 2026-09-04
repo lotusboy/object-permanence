@@ -1,6 +1,6 @@
 # Changelog
 
-Releases of Object Permanence **machinery** — `runtime/`, `.githooks/`, `templates/`, and the
+Releases of Permanence **machinery** — `runtime/`, `.githooks/`, `templates/`, and the
 docs. Your own streams, `_meta/REGISTRY.md`, and notes are never part of a release;
 they're yours, not the template's.
 
@@ -14,6 +14,34 @@ refreshes machinery as usual. Migration notes are read and *proposed* against yo
 streams, never applied without your say-so (SPEC.md invariant 5).
 
 ## [Unreleased]
+
+## [1.0.7] — the repo is renamed to `permanence`
+
+Wording and repo-identity only — no behaviour change, no migration notes.
+
+`object-permanence` was itself a rename, made in a hurry to stop the repo name,
+the `~/permanence` install folder, and the product name all colliding. On
+reflection it solved a problem that didn't need solving that way: the repo,
+the install folder, and the product are now all simply **Permanence** —
+matching what `~/permanence`, `/perma-*`, and the running instance were
+already called throughout every doc. The "Why 'Object Permanence'" section
+becomes the origin story instead of the current name: the phrase is where the
+name came from (the ADHD-community term for the failure mode this tool
+exists to fix), not what the tool is called today.
+
+The two README/QUICKSTART bullets explaining why the repo name differed from
+the install path are removed — that confusion no longer exists now that
+`git clone .../permanence.git` lands in a folder that's already correctly
+named. `runtime/.update-source` now points at the new repo URL.
+
+Historical records are untouched on purpose: past CHANGELOG entries and the
+`axis/runs/2026-08-30-object-permanence-two-pass/` and
+`axis/runs/2026-08-31-object-permanence-deep-review/` folders correctly keep
+the old name — that's what the repo was actually called when those releases
+shipped and those reviews ran, and rewriting them would falsify the record.
+
+GitHub redirects the old `object-permanence` URL automatically, so existing
+clones and links keep working.
 
 ## [1.0.6] — fixes from a second independent Axis Engineering review
 

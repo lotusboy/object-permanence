@@ -1,10 +1,10 @@
-# Object Permanence
+# Permanence
 
 > Created by **Steven Loftus** (2026) — Licensed under [GPLv3](./LICENSE)
 
 You close the laptop, come back tomorrow, and your AI assistant remembers nothing — not the decision you made, not why you ruled out the other approach, not who's waiting on what. So you spend the first ten minutes of every session re-explaining the project to it, or you don't, and it quietly repeats a mistake you already fixed once.
 
-**Object Permanence is the fix**: your externalised working memory, in plain markdown + git. It holds the state of your ongoing projects — what's happening, who's involved, what's decided, what's open — in files that survive across sessions and days, so you (and Claude) pick up exactly where you left off instead of rebuilding context every time. It's for any kind of ongoing project you run *with* an AI assistant, not just software — a client engagement, a programme you're managing, a piece of writing — anywhere you'd otherwise be the one holding all the state in your head.
+**Permanence is the fix**: your externalised working memory, in plain markdown + git. It holds the state of your ongoing projects — what's happening, who's involved, what's decided, what's open — in files that survive across sessions and days, so you (and Claude) pick up exactly where you left off instead of rebuilding context every time. It's for any kind of ongoing project you run *with* an AI assistant, not just software — a client engagement, a programme you're managing, a piece of writing — anywhere you'd otherwise be the one holding all the state in your head.
 
 **Without it** — you open a session on a project you touched last week:
 
@@ -22,20 +22,19 @@ This isn't a demo. It's the author's actual daily driver, and it holds up under 
 
 **The lazy way: hand your AI this repo and one instruction.** Paste both lines into Claude Code (or any AI assistant with shell access):
 
-> `https://github.com/lotusboy/object-permanence`
+> `https://github.com/lotusboy/permanence`
 > *"Clone this to `~/permanence`, then read its README.md and QUICKSTART.md and set Permanence up for me."*
 
 **The manual way — three commands:**
 
 ```bash
-git clone https://github.com/lotusboy/object-permanence.git ~/permanence
+git clone https://github.com/lotusboy/permanence.git ~/permanence
 cd ~/permanence && rm -rf .git && git init && git add -A && git commit -m "My Permanence"
 ~/permanence/runtime/install.sh
 ```
 
-Three things that trip people up, so they're said plainly:
+Two things worth saying plainly:
 
-- **The repo is called `object-permanence`, but it installs to `~/permanence`.** That's why the clone command names the target directory explicitly. Every script assumes `~/permanence`; a bare `git clone` would land in the wrong place. (Set `PERMA_DIR` if you genuinely want it somewhere else.)
 - **Throwing away `.git` and re-initialising is deliberate, not a mistake.** Your Permanence fills up with your own private notes about real projects and real people. It becomes *your* repo with *your* history — not a fork of this one, and not something you'd ever push back here.
 - **You can still pull future improvements after that.** `/perma-upgrade` reads the upstream URL from `runtime/.update-source`, a tracked file in the repo — it doesn't depend on the git remote you just removed.
 
@@ -88,9 +87,11 @@ flowchart LR
 - **Consolidate** (`/perma-consolidate` → `/perma-consolidate-review`) — a periodic tidy: catches stale PROJECTs, closes aged inferences, dedupes. See `example/.consolidation/REPORT-example.md`.
 - **Orchestrate** (`/perma-orchestrate`) — finds ideas converging across streams you didn't connect. See `example/_meta/emergent.md`. (Only useful once you have a few streams — ignore it at first.)
 
-## Why "Object Permanence"
+## Why "Permanence"
 
-The name is the ADHD-community term for the exact failure mode this tool exists to fix: things — and people — ceasing to exist the moment they're out of sight or out of context. The author has ADHD; this tool started as the externalisation of a compensation he already needed for himself. The insight that made it worth building for anyone else: an AI assistant has the *identical* failure mode, once, every single session, by design — no memory of anything not currently in front of it. Give both of you a place outside your own head where state actually persists, and "out of sight, out of mind" stops being inevitable for either of you.
+It started life named after "object permanence" — the ADHD-community term for the exact failure mode this tool exists to fix: things, and people, ceasing to exist the moment they're out of sight or out of context. The author has ADHD; this tool started as the externalisation of a compensation he already needed for himself. The insight that made it worth building for anyone else: an AI assistant has the *identical* failure mode, once, every single session, by design — no memory of anything not currently in front of it. Give both of you a place outside your own head where state actually persists, and "out of sight, out of mind" stops being inevitable for either of you.
+
+The full phrase is still the origin story; the tool itself is just called **Permanence** now — shorter, and it's the word you actually type and say to it day to day (`~/permanence`, "set Permanence up for me," `/perma-*`).
 
 Companion project: [`axis-engineering`](https://github.com/lotusboy/axis-engineering) — the reasoning methodology this tool is built on, from the same author, born from the same neurodivergent cognitive profile.
 
@@ -110,7 +111,7 @@ These are deliberately off by default — the core (streams + the loops above) i
 | `runtime/` | the machinery — `session-start.sh` (loads the right context per workspace), `generate-contents.sh`, `install.sh`, `nightly-consolidate.sh`, `schedule-task.sh` (cross-platform scheduling), `claude-md-block.md` + `agents-md-block.md`, and `commands/` (the `/perma-*` commands: help, brief, startup, shutdown, consolidate, consolidate-review, contents, orchestrate, register, register-group, upgrade). **Opt-in extras** (install prints how): cross-project **events** (`/perma-emit`), local semantic **search** (`/perma-search`, `runtime/search/`), and a weekly **cognitive-debt scan** (`cogdebt-scan.sh`). |
 | `.githooks/` | a **people-rule pre-commit guard** + a post-commit inventory refresh |
 | `SPEC.md` | the system, harness-independently — data model, invariants, runtime contract |
-| `docs/` | [`UPGRADE.md`](./docs/UPGRADE.md) (the `/perma-upgrade` walkthrough) and [`OTHER-TOOLS.md`](./docs/OTHER-TOOLS.md) (using Object Permanence with something other than Claude Code) |
+| `docs/` | [`UPGRADE.md`](./docs/UPGRADE.md) (the `/perma-upgrade` walkthrough) and [`OTHER-TOOLS.md`](./docs/OTHER-TOOLS.md) (using Permanence with something other than Claude Code) |
 | `templates/` | blank skeletons for the canonical files |
 | `example/` | a **fictional** populated Permanence (home decorating/DIY) showing the shape + each mechanism in action. **Delete `example/` once your own streams are going.** |
 | `_meta/REGISTRY.md` | maps each of your project folders → Permanence stream it should load (you fill this in) |

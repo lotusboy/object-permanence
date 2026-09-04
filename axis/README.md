@@ -3,10 +3,9 @@
 Records of applying the [Axis Engineering](https://github.com/lotusboy/axis-engineering)
 methodology to this repository — the companion project's protocols, pointed at this one.
 
-Object Permanence and Axis Engineering are siblings: Axis is the reasoning methodology, Object
-Permanence is a tool built on it. Reviewing Object Permanence with Axis is deliberate
-dogfooding — if the protocols don't hold up against their own author's tooling, that is worth
-knowing publicly.
+Permanence and Axis Engineering are siblings: Axis is the reasoning methodology, Permanence is
+a tool built on it. Reviewing Permanence with Axis is deliberate dogfooding — if the protocols
+don't hold up against their own author's tooling, that is worth knowing publicly.
 
 | Folder | What it holds |
 |---|---|
