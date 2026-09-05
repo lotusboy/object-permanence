@@ -15,6 +15,74 @@ streams, never applied without your say-so (SPEC.md invariant 5).
 
 ## [Unreleased]
 
+## [1.1.0] — projects by name, not just by folder
+
+Desktop AI apps (Claude Desktop, ChatGPT Desktop, etc.) have no working-folder hook and no
+way for Permanence to set one — that's host-app UI state, and there's no shared mechanism
+across vendors for it. Until now, `/perma-startup` and `/perma-shutdown` only worked if the
+app's folder happened to be pointed at the right project, which desktop-app users have no
+natural reason to remember (unlike VS Code/CLI users, whose folder is already open for the
+work itself) — and `/perma-register` still required *someone* to supply a real folder path,
+which is a harder blocker for a non-technical user who has never had a reason to think about
+folders, but can easily come up with a project name.
+
+- **`/perma-startup <name-or-path>` and `/perma-shutdown <name-or-path>`** now take either a
+  Permanence stream/project name *or* an absolute path, resolving straight to that stream
+  instead of the current working directory — whichever one you remember. A new
+  `runtime/resolve-path.sh` looks up a stream's registered real-world path (if any) for the
+  "cross-check the real repo" step; a stream with no registered path just skips that step
+  rather than failing.
+- **`/perma-register` now works from a name alone, no path required.** Given a path (or a
+  path that doesn't exist yet), it behaves as before — creating the folder if needed. Given
+  just a name with nothing to point at (*"start a new project called kitchen renovation"*),
+  it picks the real folder itself, under `~/Permanence Projects/`, and says where — so
+  someone who's never thought about folders never has to. If the name already matches a
+  registered stream, it refuses to create a duplicate and points at `/perma-startup <name>`
+  instead, since that's a resume, not a new project.
+- **Renamed `docs/OTHER-TOOLS.md` → `docs/TOOL-SUPPORT.md`** — the old name promised
+  "something other than Claude Code" but the file opens by explaining Claude Code (Tier 1)
+  as the baseline, and now covers Claude Desktop too, which isn't cleanly "other than"
+  either (its Code tab *is* Claude Code). The new name matches what the file actually is: a
+  tool-by-tool support matrix, Claude Code included.
+- **`docs/TOOL-SUPPORT.md` now covers Claude Desktop specifically**, for whoever
+  configures the machine. Claude Desktop has three tabs, not one plain chat surface — the
+  Code tab is Claude Code itself (already fully supported, nothing to grant); Cowork has
+  real file access but needs explicit `git`/`mkdir` execution permission granted, the same
+  baseline a CLI developer already has; the Chat tab has no persistent file/shell access and
+  isn't supported. README's tool-support line points here.
+- **The resolved stream is now the active stream for the rest of the conversation** —
+  every standing "update the stream when something shifts" write targets it. Switching to a
+  different project mid-session (via `/perma-startup <other-name>`) checks first whether the
+  one being left has anything undiscussed-in-its-files, and asks before switching rather than
+  silently dropping it.
+- **New `/perma-list`** — a read-only index of every registered stream (name, what it is,
+  when it last moved, its path if any), so a project can be named correctly on the first try
+  instead of guessed. Listed in `/perma-help`'s "Finding and talking" section.
+- **Fixed: invalid frontmatter YAML in five command files.** A `description:` value
+  containing a bare `word:` (colon, then a space) elsewhere in the sentence (`Trigger
+  phrases:`, `Pub/sub:`) isn't valid as an unquoted YAML plain scalar — any strict YAML reader (a code editor's
+  markdown preview, for one) fails to parse it. Found while adding `perma-list.md`'s own
+  frontmatter and confirmed pre-existing in `perma-emit.md` and `perma-help.md`, unrelated
+  to this release otherwise. Fixed by YAML-quoting the five affected `description:` values
+  (`perma-startup.md`, `perma-shutdown.md`, `perma-list.md`, `perma-emit.md`,
+  `perma-help.md`) and teaching `runtime/perma-help.sh`'s plain-text extraction to unwrap
+  that one layer of quoting, so `/perma-help`'s own output is unaffected either way.
+- **Fixed: `/perma-register` could silently merge two unrelated projects into one stream.**
+  Step 3 only checked whether the *path* being registered already existed in
+  `_meta/REGISTRY.md` — it never checked whether the proposed *stream name* was already in
+  use by a different path. Register project A as `home/kitchen`, then register an unrelated
+  project B under the same name, and step 4 would write straight into A's existing
+  `PROJECT.md`/`LOG.md`, merging their notes. Found while testing this release's name-based
+  lookup, which makes a collision more likely to actually bite (picking a stream by name
+  instead of always landing on the right one via cwd). Fixed: step 3 now also refuses and
+  asks for a different name if the target stream folder already exists for a different path.
+
+A project registered once is reachable either way from now on — open its folder in VS Code,
+or say its name in a desktop app — no per-app setup needed.
+
+No migration notes: purely additive, nothing about existing streams' shape changes, and
+cwd-based resolution (VS Code/CLI) behaves exactly as before.
+
 ## [1.0.10] — backup is loud now, and registration matches how people actually work
 
 Wording only — no behaviour change, no migration notes.

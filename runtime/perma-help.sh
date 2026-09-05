@@ -13,10 +13,16 @@ on()  { printf '  \033[32m✅\033[0m %s\n' "$1"; }
 off() { printf '  \033[90m○\033[0m  %s\n' "$1"; }
 
 # --- description for an installed command (first line of its frontmatter description) -------------
+# A description containing a bare "word: " (e.g. "Trigger phrases: ...", "Pub/sub: ...") has to be
+# YAML double-quoted in the frontmatter — a plain scalar can't hold that unambiguously. desc() and
+# triggers() below unwrap that one layer of quoting/escaping so the extracted text stays plain either
+# way; they never do full YAML parsing, just enough to match how these files are actually written.
 desc() {
   local f="$CMDS/$1.md" d
   [ -f "$f" ] || return 1
   d="$(awk -F': *' '/^description:/{sub(/^description: */,""); print; exit}' "$f")"
+  d="${d#\"}"           # drop a leading quote, if the value was YAML-quoted
+  d="${d//\\\"/\"}"     # unescape \" back to " now that we're not YAML-parsing
   # trim to the first sentence, drop any trailing "Trigger phrases:" clause
   d="${d%%Trigger phrases:*}"
   d="${d%% — *}"
@@ -24,8 +30,12 @@ desc() {
 }
 
 triggers() {
-  local f="$CMDS/$1.md"
-  [ -f "$f" ] && sed -n 's/.*Trigger phrases: *\(.*\)/\1/p' "$f" | head -1
+  local f="$CMDS/$1.md" t
+  [ -f "$f" ] || return 0
+  t="$(sed -n 's/.*Trigger phrases: *\(.*\)/\1/p' "$f" | head -1)"
+  t="${t//\\\"/\"}"     # unescape \" back to "
+  t="${t%\"}"           # drop a trailing quote, if the value was YAML-quoted
+  printf '%s' "$t"
 }
 
 show() {  # show <command> [override blurb]
@@ -84,6 +94,7 @@ show perma-register-group "several repos → one shared programme folder (plan +
 show perma-upgrade         "pull the latest machinery from your team template"
 
 printf '\n\033[1mFinding and talking\033[0m\n'
+show perma-list   "every registered stream — name, what it is, when it moved, its path"
 show perma-search "search by meaning, not keyword — local, nothing leaves the machine"
 show perma-emit   "send a note to another project's Claude"
 

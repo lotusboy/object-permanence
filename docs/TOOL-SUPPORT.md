@@ -1,4 +1,4 @@
-# Using Permanence with something other than Claude Code
+# Tool support
 
 Permanence itself — the streams, the conventions, the git history — is just plain markdown and shell
 scripts. Nothing about it requires Claude Code. What differs between tools is how much of the *automatic*
@@ -36,6 +36,25 @@ machine:
 confirmed at the time this was written — check their current docs for where they look for a per-machine
 (not per-project) config file, and add it to `runtime/install.sh`'s list once confirmed. Until then, use
 the manual fallback below for those two.
+
+## Claude Desktop specifically (for IT/Ops: what to grant)
+
+The underlying requirement here isn't a Claude Desktop quirk — `SPEC.md` §3 states it as a
+precondition for *any* harness: operating Permanence means actually executing shell commands
+(`git`, `mkdir`), not just reading and writing files. The table below is what that
+requirement looks like specifically on Claude Desktop's three tabs, for whoever manages the
+machine:
+
+| Tab | File/shell access | What's needed |
+|---|---|---|
+| **Code** | Full — this tab *is* Claude Code, embedded in the desktop app | Nothing extra. Tier 1 above, same as the CLI/VS Code extension. |
+| **Cowork** | Real, native file-system access via a folder-scoped permission model | The Cowork session needs to be granted permission to run `git` and `mkdir` in its mounted folder(s) — the same baseline a developer already has on the CLI. Structured file read/write alone isn't enough; Permanence commits to git and creates folders. |
+| **Chat** | None persistent | Not supported. No file or shell access means no way to read or write a stream at all. |
+
+**The one-line ask for IT/Ops:** for a user on the Code or Cowork tab, grant the same
+`git`/`mkdir` execution permission a developer already has on the CLI — nothing more exotic
+than that, and nothing Permanence-specific to install or approve beyond it. Users who only
+have the Chat tab available aren't supported by this open-source tool today.
 
 ## Manual fallback (any tool, no setup required)
 

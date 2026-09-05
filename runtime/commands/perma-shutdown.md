@@ -1,5 +1,5 @@
 ---
-description: End-of-day wind-down — capture where things stand into this project's Permanence stream (PROJECT + QUESTIONS) and hand back a Done / in-flight / first-move-tomorrow summary, so the open loops leave your head instead of coming home with you. Trigger phrases: "good night Permanence", "night Permanence".
+description: "End-of-day wind-down — capture where things stand into this project's Permanence stream (PROJECT + QUESTIONS) and hand back a Done / in-flight / first-move-tomorrow summary, so the open loops leave your head instead of coming home with you. Optional argument: a Permanence stream/project name, OR an absolute path to a registered project — either works, for sessions with no meaningful working folder (desktop AI apps). Trigger phrases: \"good night Permanence\", \"night Permanence\"."
 ---
 
 # Permanence — Shutdown
@@ -8,8 +8,14 @@ The evening bookend to `/perma-brief`. When I'm wrapping up for the day, get eve
 
 ## How to run it
 
-1. **Light pass over today — no deep digging.** In the *current project repo* (not Permanence), read `git status` and today's commits (`git log --since=midnight --pretty=format:"%h %s"`), and take stock of where the current session left off. **Include uncommitted changes and in-flight session state** — the resume point must reflect where I *really* am, not just the last commit (much of my work runs through agent batches / uncommitted edits, so last-commit alone under-captures it).
-2. **Find this repo's stream.** Run `~/permanence/runtime/resolve-stream.sh "$(pwd -P)"` to get the stream for this workspace. If it comes back empty (unregistered) or `perma-meta`, skip the writes — just give me the chat summary (step 4) and note the workspace isn't a registered stream.
+1. **Find the stream.**
+   - **No argument (`$ARGUMENTS` empty):** run `~/permanence/runtime/resolve-stream.sh "$(pwd -P)"` to get the stream for this workspace. If it comes back empty (unregistered) or `perma-meta`, skip the writes — just give me the chat summary (step 6) and note the workspace isn't a registered stream.
+   - **Argument looks like a path** (starts with `/` or `~`): run `~/permanence/runtime/resolve-stream.sh "<the given path>"` — it accepts any path, not just the working directory. Empty result → say so plainly, same as the no-argument case.
+   - **Argument looks like a name** (anything else): treat it as a stream name directly. Confirm `~/permanence/<name>/PROJECT.md` exists. If there's no exact match, run `/perma-list` to see what's registered, and if more than one name looks close, list the candidates and ask which one — never guess.
+2. **Light pass over today — no deep digging.**
+   - **Resolved via cwd or a given path:** that path *is* the real project repo — read `git status` and today's commits (`git log --since=midnight --pretty=format:"%h %s"`) there.
+   - **Resolved by name:** look up the real path with `~/permanence/runtime/resolve-path.sh <stream>`. No match → skip this pass and say so plainly (the stream may be topic-only, with no project repo attached). One match → run the same `git status`/`git log` there. More than one match → list them and ask which folder first.
+   - Either way, take stock of where the current session left off. **Include uncommitted changes and in-flight session state** — the resume point must reflect where I *really* am, not just the last commit (much of my work runs through agent batches / uncommitted edits, so last-commit alone under-captures it).
 3. **Update the stream gently — surgical edits, preserve the curated content:**
    - `PROJECT.md` → refresh only "where things stand" (what moved today, what's mid-flight). Edit the affected lines, leave the rest intact, and bump the `Last updated YYYY-MM-DD` header to today. Do **not** regenerate the file.
    - `QUESTIONS.md` → add any genuinely new open threads that surfaced today, in the file's existing format/numbering. Don't duplicate ones already there; don't close anything.
