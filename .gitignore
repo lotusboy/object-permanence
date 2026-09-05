@@ -12,7 +12,3 @@ __pycache__/
 !example/.consolidation/**
 _meta/events.jsonl
 _meta/.events-seen/
-runtime/search/.index/
-runtime/search/.venv/
-_meta/.cogdebt-state.json
-_meta/cogdebt/

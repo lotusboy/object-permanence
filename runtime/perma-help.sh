@@ -95,7 +95,6 @@ show perma-upgrade         "pull the latest machinery from your team template"
 
 printf '\n\033[1mFinding and talking\033[0m\n'
 show perma-list   "every registered stream — name, what it is, when it moved, its path"
-show perma-search "search by meaning, not keyword — local, nothing leaves the machine"
 show perma-emit   "send a note to another project's Claude"
 
 # anything installed that no group above claimed
@@ -108,8 +107,6 @@ done
 printf '\n\033[1mRunning in the background\033[0m\n'
 job_loaded perma-consolidate     && on "nightly consolidate (05:30) — writes a report for you to review" \
                                  || off "nightly consolidate — not loaded"
-job_loaded perma-cogdebt         && on "weekly cognitive-debt scan (Mon 06:00) — emits an event on a breach" \
-                                 || off "weekly cognitive-debt scan — not loaded"
 job_loaded perma-shutdown-nudge  && on "weekday nudge to run /perma-shutdown — $PERMA/runtime/shutdown-nudge.sh --uninstall to stop" \
                                  || off "weekday /perma-shutdown nudge — off ($PERMA/runtime/shutdown-nudge.sh --install 17:00)"
 hook_has session-start.sh        && on "session-start hook — loads the right stream when you open a project" \
@@ -122,7 +119,6 @@ if hook_has events-listen.sh || hook_has stop-listen.sh; then
 else
   off "cross-project events — receiving is off (emitting still works)"
 fi
-[ -x "$PERMA/runtime/search/.venv/bin/python" ] && on "/perma-search index — built" || off "/perma-search — needs its one-time local venv (see install.sh)"
 [ -s "$PERMA/runtime/.update-source" ] && on "/perma-upgrade source set — $(tr -d '[:space:]' < "$PERMA/runtime/.update-source")" \
                                       || off "/perma-upgrade — no source set, so it exits immediately (put your template repo URL in runtime/.update-source)"
 

@@ -50,16 +50,12 @@ source "$PERMA/runtime/schedule-task.sh"
 # it. Embedding the quote characters now is what survives that second parse.
 schedule_task "perma-consolidate" "\"$PERMA\"/runtime/nightly-consolidate.sh >> \"$PERMA\"/runtime/logs/nightly-consolidate.log 2>&1" "daily 05:30"
 
-# Cognitive-debt scan: OPT-IN, matching README's own "Opt-in extras" listing — this is the fix,
-# not just the comment. Auto-scheduling it unconditionally used to set up a weekly job that was
-# guaranteed broken on every fresh install (the watch-list is a placeholder path until edited);
-# cogdebt-scan.sh now refuses to run against that placeholder, so scheduling it before it's
-# configured would just mean a weekly job that logs "not configured" instead of doing anything.
-# Detected rather than a separate manual step: schedule it once the placeholder is actually gone.
-if grep -q '/path/to/your/ai-built-repo' "$PERMA/runtime/cogdebt-scan.sh" 2>/dev/null; then
-  echo "  cogdebt scan: NOT scheduled — edit the REPOS watch-list at the top of runtime/cogdebt-scan.sh, then re-run install.sh to schedule the weekly check"
-else
-  schedule_task "perma-cogdebt" "\"$PERMA\"/runtime/cogdebt-scan.sh --quiet >> \"$PERMA\"/runtime/logs/cogdebt.log 2>&1" "weekday 1 06:00"
+# Cognitive-debt scan removed (v1.2.0) — nothing here can reschedule it anymore, so clean up a
+# job an earlier install may have left behind. Gated on a job actually existing so this stays
+# silent for everyone who never had it (the common case going forward).
+if [ -n "$(_existing_job_command "perma-cogdebt" 2>/dev/null)" ]; then
+  echo "  cogdebt scan: no longer supported, removing its scheduled job"
+  unschedule_task "perma-cogdebt"
 fi
 
 # 4. CLAUDE.md + AGENTS.md: manage ONLY the delimited Permanence block, never the rest of a
@@ -181,13 +177,7 @@ echo "  events: scripts + /perma-emit installed. To ENABLE delivery (opt-in), ad
 echo "      \"UserPromptSubmit\": [ { \"hooks\": [ { \"type\": \"command\", \"command\": \"$PERMA/runtime/events-listen.sh\", \"timeout\": 10 } ] } ],"
 echo "      \"Stop\":             [ { \"hooks\": [ { \"type\": \"command\", \"command\": \"$PERMA/runtime/stop-listen.sh\",  \"timeout\": 10 } ] } ]"
 
-# 7. Semantic search (/perma-search) — OPT-IN. The command + scripts are installed above; the
-#    local embedding index needs a one-time venv (chromadb, local ONNX model, zero API, Python >=3.10).
-echo "  /perma-search: to enable semantic search, set up its local venv (one-time, no API):"
-echo "      uv venv $PERMA/runtime/search/.venv --python 3.12 && uv pip install --python $PERMA/runtime/search/.venv/bin/python -r $PERMA/runtime/search/requirements.txt"
-echo "      then: $PERMA/runtime/search/.venv/bin/python $PERMA/runtime/search/perma-search.py build   (the post-commit hook keeps it fresh after that)"
-
-# 8. Shutdown nudge (macOS) — OPT-IN. A weekday end-of-day notification reminding you to run
+# 7. Shutdown nudge (macOS) — OPT-IN. A weekday end-of-day notification reminding you to run
 #    /perma-shutdown. Not installed automatically (a desktop ping is a personal choice).
 echo "  shutdown nudge: to get a weekday reminder to run /perma-shutdown, enable it:"
 echo "      $PERMA/runtime/shutdown-nudge.sh --install 17:00   (change the time, or --uninstall to remove)"

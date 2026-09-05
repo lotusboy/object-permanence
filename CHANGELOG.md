@@ -15,6 +15,51 @@ streams, never applied without your say-so (SPEC.md invariant 5).
 
 ## [Unreleased]
 
+## [1.2.0] — trim the optional extras; a real fix for how upgrades handle removed files
+
+Two of the four "optional extras" are gone, for opposite-sounding but related reasons: neither
+one actually served this tool's job of helping you and the AI pick up where you left off.
+
+- **Removed `cogdebt-scan.sh`** (the weekly cognitive-debt check). It's a code-quality monitor,
+  not a memory/continuity tool.
+- **Removed semantic search (`/perma-search`)**. Its premise — grep misses paraphrases — is a
+  human-search problem; an AI agent doesn't need a pre-built embedding index to notice two notes
+  are related, it just reads the files and reasons. A bolted-on search layer was solving a
+  problem an AI-native tool mostly doesn't have.
+- **Programme groups stay, reframed.** Not removed — it has real, proven use and a clear,
+  correctly-scoped persona once named properly: a tech lead's own Permanence, tracking a team's
+  repos from one vantage point, without anyone else needing to run Permanence. Moved out of
+  "Optional extras" in the docs (it never had a real install-time toggle the way events/search
+  did, so it never belonged there) and into the base command description.
+
+Removing two shipped features properly meant fixing how upgrades handle a file the template no
+longer ships, which `update.sh` had never actually done:
+
+- **Fixed: `update.sh` silently failed to remove a file the template deleted.** It only ever
+  did `git checkout $TARGET -- $path`, which does nothing when `$path` no longer exists at
+  `$TARGET` — so anyone who already had `cogdebt-scan.sh` or `runtime/search/` would have kept
+  an orphaned copy forever after upgrading, with `/perma-upgrade` never mentioning it. A deleted
+  path is now always removed on upgrade — customized or not, no negotiation. (Considered, and
+  rejected: treating a customized deleted file as a negotiated conflict like a modified one.
+  Conflict detection here is purely per-file with no concept of "feature," so a multi-release
+  upgrade could surface several unrelated customized files as one flat, ungrouped list to
+  reason about individually — tolerable for an ordinary modified file, not worth it for a file
+  the template doesn't support at all anymore.) `install.sh` also now cleans up an orphaned
+  `perma-cogdebt` scheduled job left by an earlier install, since nothing can reschedule it
+  anymore.
+- **Fixed the same class of gap in `migrate-from-brain.sh`**, which had no conflict detection at
+  all — it wipes and replaces `runtime/`, `.githooks/`, `templates/`, and the root docs
+  unconditionally, and its only safety check (no *uncommitted* changes) lets a committed
+  customization sail straight through. It now backs up the old versions of those exact paths,
+  unconditionally, every time, before replacing them — the standard, ordinary practice of
+  keeping the previous version before installing a new one over it, not feature-specific
+  detection. Verified against a real reproduction (a scratch install with a customized
+  `cogdebt-scan.sh`), not just reasoning.
+
+No **Migration notes** — nothing here changes a stream's shape; the file removal and scheduled-
+job cleanup happen automatically as part of the mechanical apply, not as stream content to
+migrate.
+
 ## [1.1.2] — a stale local tag could break `/perma-upgrade`'s fetch outright
 
 **Fixed: `update.sh` could fail with a misleading "check the URL/access" error.** Its fetch step
