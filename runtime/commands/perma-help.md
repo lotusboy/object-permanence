@@ -1,5 +1,5 @@
 ---
-description: What this Permanence can do — every installed /perma-* command, and which background machinery is actually switched on for this machine. Trigger phrases: "what can Permanence do", "Permanence help".
+description: "What this Permanence can do — every installed /perma-* command, and which background machinery is actually switched on for this machine. Trigger phrases: \"what can Permanence do\", \"Permanence help\"."
 ---
 
 # Permanence — Help

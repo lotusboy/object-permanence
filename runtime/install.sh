@@ -114,7 +114,7 @@ merge_agents_block "$HOME/.config/agents/AGENTS.md"                 # emerging u
 [ -f "$HOME/.config/AGENTS.md" ] && merge_agents_block "$HOME/.config/AGENTS.md"  # Amp, if it already exists
 # Devin's and Google Antigravity's own global-config paths weren't confirmed at time of writing —
 # verify and add here before relying on automatic Tier 2 coverage for those specifically; until
-# then they fall back to the manual pointer (see docs/OTHER-TOOLS.md).
+# then they fall back to the manual pointer (see docs/TOOL-SUPPORT.md).
 
 # 5. settings.json: safely MERGE the SessionStart hook + ~/permanence permission
 #    (add only if absent; preserve everything else; back up before writing).

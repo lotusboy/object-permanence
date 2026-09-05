@@ -82,9 +82,11 @@ project"**.
 
 **Using a desktop app with local file access (Claude Desktop, ChatGPT Desktop, or similar).** Don't rely
 on the app's own folder/workspace concept — it varies by app, and Permanence doesn't know about it
-either way. Instead, just say the project's actual path in your message: **"register this project at
-`/Users/you/path/to/it`"**. That works identically no matter how the app itself scopes file access, and
-it's what `/perma-register` is built to take as an argument.
+either way. If there's a real folder for this project, just say its path: **"register this project at
+`/Users/you/path/to/it`"**. That works identically no matter how the app itself scopes file access. If
+there's no folder at all — a topic you just want to think out loud about — a name is enough: **"start a
+new project called kitchen renovation"**. No path, no folder to think about; Permanence picks a real
+folder for you (under `~/Permanence Projects/`) and tells you where, in case you ever want it.
 
 **Either way**, from there it's the same:
 
@@ -98,6 +100,8 @@ A couple of things worth knowing:
 
 - **If you skip setting a real project path, the session lands in your home folder**, and registering *that* would make every home-defaulted session load a meaningless stream. Permanence now refuses to register a home/container folder and tells you to set the folder instead — but replacing `/Users/you` with your real home path in `_meta/REGISTRY.md`'s `perma-meta` row is still worth doing, so home sessions cleanly get brief-level access.
 - **Deleting a session is safe.** A session is just the conversation — deleting it leaves the folder, its files, your Permanence stream and the registry untouched. Point a new session at the same folder and it picks straight up. That's rather the point.
+- **A project isn't tied to one app.** Once it's registered, the same project is reachable both ways — open its folder in VS Code, or just say its name in a desktop app — it's the same stream either way, no extra setup per app.
+- **Desktop-app users: `/perma-startup` and `/perma-shutdown` take a project name *or* a path** — say *"good morning Permanence, kitchen renovation"* or give the folder path, whichever you remember, instead of relying on the app's folder to pick the project for you. Not sure of the exact name? Ask to **"list my Permanence projects"** first (`/perma-list`). Switching projects mid-conversation is just calling it again with a different name — Permanence will check first if the one you're leaving still has anything worth winding down.
 
 ## 6. Then just use it
 

@@ -1,5 +1,5 @@
 ---
-description: Emit a Permanence event from THIS project to other open sessions — a semi-real-time note that something interesting happened here, delivered into other projects' context (never their files). Pub/sub: the emitter never sees its own event echoed back.
+description: "Emit a Permanence event from THIS project to other open sessions — a semi-real-time note that something interesting happened here, delivered into other projects' context (never their files). Pub/sub: the emitter never sees its own event echoed back."
 ---
 
 # Permanence — Emit event
