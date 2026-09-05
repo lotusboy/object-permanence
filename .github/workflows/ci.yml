@@ -85,7 +85,6 @@ jobs:
       - name: Compile-check every embedded Python heredoc / script
         run: |
           set -e
-          python3 -m py_compile runtime/search/perma-search.py
           # extract each `<<'PY' ... PY` block per shell script and compile-check it
           for f in $(find . -name "*.sh" -not -path "./.git/*"); do
             awk '/<<.PY/{flag=1;next} /^PY$/{flag=0} flag' "$f" > /tmp/_heredoc_check.py

@@ -4,25 +4,6 @@
 PERMA="${PERMA_DIR:-$HOME/permanence}"
 "$PERMA/runtime/generate-contents.sh" --quiet >/dev/null 2>&1 || true
 
-# Keep the /perma-search semantic index fresh — INCREMENTAL (only the .md files this commit
-# touched) + BACKGROUNDED (never blocks the commit) + best-effort. No-ops unless perma-search
-# is set up (its venv exists). Local embeddings, zero API.
-#
-# Null-delimited throughout (git diff -z, read -d ''), not xargs off a plain newline list: a
-# filename with a space (e.g. "LOG 2026.md") used to split into two arguments, so perma-search
-# found neither the old nor the new name — no error anywhere, the index just quietly went stale.
-SEARCH_PY="$PERMA/runtime/search/.venv/bin/python"
-if [ -x "$SEARCH_PY" ]; then
-  (
-    cd "$PERMA" || exit 0
-    CHANGED_FILES=()
-    while IFS= read -r -d '' f; do
-      CHANGED_FILES+=("$PERMA/$f")
-    done < <(git diff -z --name-only --diff-filter=ACMRD HEAD~1 HEAD -- '*.md' 2>/dev/null)
-    [ "${#CHANGED_FILES[@]}" -gt 0 ] && "$SEARCH_PY" runtime/search/perma-search.py update "${CHANGED_FILES[@]}"
-  ) >/dev/null 2>&1 &
-fi
-
 # [stub — orchestration pressure gauge, build-sequence Phase 4c]
 # Deliberately NOT implemented yet: per _meta/generative-orchestration-pass.md the gauge
 # is wired only once /perma-orchestrate is proven by hand (apophenia guard). When it lands,

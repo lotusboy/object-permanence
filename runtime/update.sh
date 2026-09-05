@@ -80,10 +80,24 @@ fi
 # top-level PATHS entry a file happens to live under. The old design skipped an entire directory
 # (e.g. all of runtime/, every one of its ~20 scripts) from being applied just because ONE file in
 # it conflicted; per-file tracking means only the actually-conflicting files are held back.
+#
+# Deletions (status D — the template no longer ships this path) are tracked separately and never
+# go through conflict detection below: if the template removed it, it's removed on upgrade,
+# customized or not. The alternative (treat a customized deleted file as a negotiated conflict,
+# like a modified one) sounds more careful but isn't — conflict detection here is purely
+# per-file with no concept of "feature", so a multi-release upgrade could surface several
+# unrelated customized files as one flat, ungrouped list to reason about individually. Tolerable
+# for an ordinary modified file; not worth it for a file the template doesn't support at all
+# anymore. It's still visible either way, in the "Changed machinery files" diff printed above.
 CHANGED_FILES=()
-while IFS=$'\t' read -r _ path; do
+DELETED_FILES=()
+while IFS=$'\t' read -r status path; do
   [ -n "${path:-}" ] || continue
-  CHANGED_FILES+=("$path")
+  if [ "$status" = "D" ]; then
+    DELETED_FILES+=("$path")
+  else
+    CHANGED_FILES+=("$path")
+  fi
 done <<< "$CHANGED"
 
 # --- conflict detection: did YOUR history touch a changed path since your recorded version? ---
@@ -144,6 +158,10 @@ done
 # above to skip the one spurious empty-string element it introduces).
 if [ "${#APPLY_FILES[@]}" -gt 0 ]; then
   git -C "$PERMA" checkout -q "$TARGET" -- "${APPLY_FILES[@]}" 2>/dev/null || true
+fi
+# Deletions always apply, unconditionally — see the note where DELETED_FILES is built above.
+if [ "${#DELETED_FILES[@]}" -gt 0 ]; then
+  git -C "$PERMA" rm -q -- "${DELETED_FILES[@]}" 2>/dev/null || true
 fi
 chmod +x "$PERMA/runtime/"*.sh "$PERMA/.githooks/"* 2>/dev/null
 echo "re-running install.sh (re-wires hooks + commands) ..."

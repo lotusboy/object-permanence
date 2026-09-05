@@ -77,6 +77,19 @@ if git -C "$NEW" rev-parse --git-dir >/dev/null 2>&1; then
 else
   echo "  NOTE: $NEW has no git history yet, so local edits under runtime/.githooks/templates/SPEC.md/README.md/QUICKSTART.md/CHANGELOG.md cannot be checked and will be overwritten by this step."
 fi
+# Back up the old machinery before replacing it — the standard, ordinary practice for
+# installing a new version over an old one. This script has no per-file conflict detection the
+# way update.sh does, so it can't tell "customized" from "untouched"; rather than guess, just
+# keep everything, unconditionally, every time. Generic and permanent: it protects anything
+# under these paths, not just one specific file, and needs no updating if what's removed or
+# changed here ever changes again.
+BACKUP="$NEW/.pre-migration-backup"
+mkdir -p "$BACKUP"
+for p in runtime .githooks templates SPEC.md README.md QUICKSTART.md CHANGELOG.md; do
+  [ -e "$NEW/$p" ] && cp -R "$NEW/$p" "$BACKUP/$p"
+done
+echo "  previous machinery backed up to $BACKUP"
+
 for p in runtime .githooks templates SPEC.md README.md QUICKSTART.md CHANGELOG.md; do
   rm -rf "${NEW:?}/${p:?}"
   cp -R "$SRC/$p" "$NEW/$p"
@@ -152,5 +165,7 @@ bash "$NEW/runtime/install.sh"
 
 echo ""
 echo "✅ Migration complete: $NEW is now a normal, up-to-date Permanence install."
+echo "   Your previous machinery is preserved at $NEW/.pre-migration-backup/ in case you need"
+echo "   anything from it (a customized script, a feature that no longer ships, etc.)."
 echo "   Start a fresh Claude Code session so the new hooks load."
 echo "   Sanity-check: git -C \"$NEW\" log --oneline -5   (your full history should still be there)"
