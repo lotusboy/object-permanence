@@ -49,7 +49,14 @@ if git -C "$PERMA" remote get-url _machinery >/dev/null 2>&1; then
 else
   git -C "$PERMA" remote add _machinery "$SRC"
 fi
-git -C "$PERMA" fetch -q --tags _machinery "$BRANCH" || { echo "Fetch failed — check the URL/branch and your access to the repo."; exit 1; }
+# --force on the tags: _machinery is single-purpose (only ever used to check for updates), so its
+# tags are always authoritative here — nothing in this install relies on a *local* tag under one of
+# these names (_meta/VERSION is the real version record). Without --force, a fetch fails outright,
+# with a generic "check the URL/access" message, if a local tag of the same name ever points at a
+# different commit than upstream's — which reads as a network/auth problem but is neither: it can
+# happen after any source-side history rewrite (rebase, filter-repo, a force-pushed tag), or just an
+# old install that tagged something locally before ever pulling upstream's tags.
+git -C "$PERMA" fetch -q --force --tags _machinery "$BRANCH" || { echo "Fetch failed — check the URL/branch and your access to the repo."; exit 1; }
 
 LATEST_TAG=$(git -C "$PERMA" tag --merged FETCH_HEAD --sort=-v:refname 2>/dev/null | head -1)
 TARGET="${LATEST_TAG:-FETCH_HEAD}"

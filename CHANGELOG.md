@@ -15,6 +15,21 @@ streams, never applied without your say-so (SPEC.md invariant 5).
 
 ## [Unreleased]
 
+## [1.1.2] — a stale local tag could break `/perma-upgrade`'s fetch outright
+
+**Fixed: `update.sh` could fail with a misleading "check the URL/access" error.** Its fetch step
+pulled tags from the update source without `--force`. If a local tag ever collided by name with a
+real release tag pointing at a different commit — the update source's history was ever rewritten
+(rebase, `git filter-repo`, a force-pushed tag), or an install had tagged something locally before
+ever pulling upstream's tags — the fetch failed outright, and the error message pointed at
+network/access, not the real cause. `_machinery` is single-purpose (only ever used to check for
+updates); nothing in an install relies on a *local* tag under one of these names, so its tags are
+always authoritative here. `--force` on the tags fetch makes that fetch succeed the way it always
+should have. Verified against a real reproduction: a scratch install with a deliberately
+conflicting local tag now upgrades cleanly instead of failing.
+
+No migration notes — this only changes how the fetch step behaves, not any file shape.
+
 ## [1.1.1] — catching up the docs `v1.1.0` left stale
 
 Wording only — no behaviour change, no migration notes.
