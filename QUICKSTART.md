@@ -1,6 +1,6 @@
 # QUICKSTART
 
-Five steps to a working Permanence. ~10 minutes.
+Six steps to a working Permanence. ~10 minutes.
 
 ## 1. Put it at `~/permanence`
 
@@ -35,7 +35,28 @@ remote you just removed.
 > somewhere not continuously cloud-synced — a git repo and a sync client both wanting to touch the same
 > files can cause odd behavior.
 
-## 2. Explore the example, then delete it
+## 2. Back up before you forget
+
+**This is the point where it matters most, so it's worth doing now rather than "eventually."** The
+`.git` history you just created is local-only — there's no remote, and nothing here sets one up.
+`runtime/make-backup.sh` gives you an encrypted, verified off-machine backup in one command: it bundles
+the whole history, encrypts it to a key only you hold, verifies the round-trip before trusting it, and
+keeps a few dated copies. The one-time setup and restore steps are in the comment at the top of the
+script itself.
+
+```bash
+age-keygen -o ~/.config/age/perma-backup.key    # one-time — store this key safely, separately from the backup
+~/permanence/runtime/make-backup.sh
+```
+
+It's **not** run automatically — `install.sh` doesn't schedule it, and it checks your working tree
+before bundling, telling you plainly if anything's uncommitted (run `/perma-shutdown` first, or commit
+by hand, for a backup that covers everything). Re-run it any time; a weekly cron/launchd entry alongside
+the nightly consolidate is a reasonable default once you've got real notes worth losing. If this machine
+is the only copy and something happens to it, losing the machine loses everything — this script is the
+whole difference.
+
+## 3. Explore the example, then delete it
 
 Open `~/permanence/example/` and read a stream or two (`home/bathroom`, `home/kitchen`) — that's the shape and the conventions in action. When it's clicked:
 
@@ -43,34 +64,42 @@ Open `~/permanence/example/` and read a stream or two (`home/bathroom`, `home/ki
 rm -rf ~/permanence/example     # your Permanence starts empty; the example was just the demo
 ```
 
-## 3. Install the machinery
+## 4. Install the machinery
 
 ```bash
 ~/permanence/runtime/install.sh
 ```
 This sets up **everything global, hands-off**: copies the `/perma-*` commands into Claude Code, arms the git hooks, loads the nightly consolidate, **and wires `~/.claude/settings.json`** (the SessionStart hook + the `~/permanence` permission) — merged in safely, leaving your other settings untouched. No manual editing. *(Only if you don't have `python3` will it print the settings snippet for you to paste instead.)*
 
-## 4. Set the session's working folder — then register
+## 5. Register your first project
 
-**Do this before registering anything.** Each session has a *working folder* (the folder chip in the composer, next to the `Local`/environment chip). Set it to the project's own folder — that's what keeps sessions separate, and it's what Permanence resolves against. One session per project folder.
+How this works depends on what you're using — pick the one that matches you:
 
-**Click the folder chip, not the "add another folder" button.** They do different things, and the difference is easy to get wrong: the chip *sets* the working folder; the plus button grants access to an **extra** folder while leaving the working folder as it was. **Permanence resolves the working folder only** — so if you leave it on your home folder and merely *add* the project, Permanence still resolves home and you get the wrong stream (or none). You never need to add `~/permanence` by hand, either: `install.sh` grants it globally, which is why Permanence reaches you from any project.
+**Using Claude Code, via VS Code or the CLI (probably you, if you're a software engineer).** Your
+working directory already *is* your project — open the project as your VS Code workspace, or `cd` into
+it before running `claude`. No extra step needed: just open the project and say **"register this
+project"**.
 
-If you skip it, the session lands in your home folder, and registering *that* would make every home-defaulted session load a meaningless stream. Permanence now refuses to register a home/container folder and tells you to set the folder instead — but replacing `/Users/you` with your real home path in `_meta/REGISTRY.md`'s `perma-meta` row is still worth doing, so home sessions cleanly get brief-level access.
+**Using a desktop app with local file access (Claude Desktop, ChatGPT Desktop, or similar).** Don't rely
+on the app's own folder/workspace concept — it varies by app, and Permanence doesn't know about it
+either way. Instead, just say the project's actual path in your message: **"register this project at
+`/Users/you/path/to/it`"**. That works identically no matter how the app itself scopes file access, and
+it's what `/perma-register` is built to take as an argument.
 
-**Deleting a session is safe.** A session is just the conversation — deleting it leaves the folder, its files, your Permanence stream and the registry untouched. Point a new session at the same folder and it picks straight up. That's rather the point.
+**Either way**, from there it's the same:
 
-## 4b. Register your first project — just ask Claude
+> **"Register this project in Permanence"** — and point it at the README if there is one: *"…here's the README: `<path>`"* (or the explicit path, if you're using a desktop app per above).
 
-No file-wrangling. **Open the project itself in Claude Code** and just say:
-
-> **"Register this project in Permanence"**  — and point it at the README if there is one: *"…here's the README: `<path>`"*
-
-You don't need to tell it where Permanence is (always `~/permanence`) or run any command — from inside the project, Claude already knows to offer this. It reads the README, creates the stream seeded from it (PROJECT/LOG/QUESTIONS/PEOPLE), adds it to the registry, and confirms. No README? Just describe it ("set up a stream for doing up the bathroom") and it builds the stream from that.
+You don't need to tell it where Permanence is (always `~/permanence`) or run any command — Claude already knows to offer this. It reads the README, creates the stream seeded from it (PROJECT/LOG/QUESTIONS/PEOPLE), adds it to the registry, and confirms. No README? Just describe it ("set up a stream for doing up the bathroom") and it builds the stream from that.
 
 That's it. **Next time you open that project, Permanence loads its context automatically.**
 
-## 5. Then just use it
+A couple of things worth knowing:
+
+- **If you skip setting a real project path, the session lands in your home folder**, and registering *that* would make every home-defaulted session load a meaningless stream. Permanence now refuses to register a home/container folder and tells you to set the folder instead — but replacing `/Users/you` with your real home path in `_meta/REGISTRY.md`'s `perma-meta` row is still worth doing, so home sessions cleanly get brief-level access.
+- **Deleting a session is safe.** A session is just the conversation — deleting it leaves the folder, its files, your Permanence stream and the registry untouched. Point a new session at the same folder and it picks straight up. That's rather the point.
+
+## 6. Then just use it
 
 **Talk to Claude about the project as you work** — it keeps the stream updated. Run `/perma-brief` of a morning for the across-everything picture; `/perma-consolidate` occasionally to tidy. Ignore `/perma-orchestrate` until you've got a few streams.
 
@@ -94,8 +123,6 @@ Keep it in that file rather than your shell profile — in your profile it can l
 **Optional — programme groups (one report across several repos).** For **one owner** spanning several of their own repos — if one programme spans more than one repo and somebody outside the work keeps asking where things are, `/perma-register-group` sets up a shared plan-and-status folder in the coordinating repo. (Not for coordinating different people on different laptops — see the README for why.) After that, a `/perma-shutdown` in *any* member repo refreshes the whole folder — it converges, so you never have to be in the "right" repo. It's written for a reader who can't check it, so every claim traces to a commit or a measured output, and the RAG rules are fixed so several programmes can be scanned side by side. Skip it entirely if you've one repo per programme.
 
 **Optional — semantic search (`/perma-search`).** Once you've got a fair bit of accumulated notes, grep-by-keyword starts missing things you remember by *meaning*. `/perma-search "some concept"` finds them — local embeddings, nothing leaves the machine, and it only *points* you at the files (you still read the real markdown). One-time setup builds a small local index (`install.sh` prints the command); after that the post-commit hook keeps it fresh. Like events, skip it until plain grep starts failing you.
-
-**Worth doing early — an encrypted off-machine backup (`runtime/make-backup.sh`).** Your Permanence is one git repository on one machine; if that machine is lost, so is everything in it, unless you've made your own copy. `runtime/make-backup.sh` bundles the whole history, encrypts it to a key only you hold, verifies the round-trip before trusting it, and keeps a few dated copies — the one-time setup and restore steps are in the comment at the top of the script itself. It checks your working tree before bundling and tells you plainly if anything's uncommitted (run `/perma-shutdown` first, or commit by hand, for a backup that covers everything). Not wired into `install.sh` — it's your call whether and how often to run it (a weekly cron/launchd entry alongside the nightly consolidate is a reasonable default once you've got real notes worth losing).
 
 ---
 

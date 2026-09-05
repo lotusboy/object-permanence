@@ -15,6 +15,32 @@ streams, never applied without your say-so (SPEC.md invariant 5).
 
 ## [Unreleased]
 
+## [1.0.10] — backup is loud now, and registration matches how people actually work
+
+Wording only — no behaviour change, no migration notes.
+
+The local-only, no-automated-backup nature of Permanence was true from the start (see
+SPEC.md invariant 7) but easy to miss in the two places people actually read first:
+
+- **README.md** now says it plainly, right next to the `.git` re-init step: nothing
+  is backed up unless `runtime/make-backup.sh` is run, there's no remote, and losing
+  the machine loses everything if that's the only copy.
+- **QUICKSTART.md** gives backup its own early numbered step (right after putting
+  Permanence at `~/permanence`), instead of burying it as the last item in a long
+  "Optional —" list near the bottom, where someone would only find it after already
+  accumulating notes worth losing.
+
+QUICKSTART.md's registration step (previously "4. Set the session's working folder —
+then register" / "4b. Register your first project") assumed one specific UI — a
+"folder chip in the composer" — that doesn't describe how VS Code or Claude Code CLI
+users work (their working directory already is the project) and doesn't map cleanly
+onto other desktop apps either. It's now split by actual audience: VS Code/CLI users
+need no special step at all, and desktop-app users (Claude Desktop, ChatGPT Desktop,
+etc.) are told to just say the project's explicit path when registering — leaning on
+`/perma-register`'s existing explicit-path argument, which already supported this and
+needed no code change. The container-folder-refusal and "deleting a session is safe"
+guidance is kept, reframed as universal rather than tied to one app's UI terminology.
+
 ## [1.0.9] — the origin story starts at the actual origin
 
 Wording only — no behaviour change, no migration notes.

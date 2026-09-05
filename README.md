@@ -35,9 +35,10 @@ cd ~/permanence && rm -rf .git && git init && git add -A && git commit -m "My Pe
 ~/permanence/runtime/install.sh
 ```
 
-Two things worth saying plainly:
+Three things worth saying plainly:
 
 - **Throwing away `.git` and re-initialising is deliberate, not a mistake.** Your Permanence fills up with your own private notes about real projects and real people. It becomes *your* repo with *your* history — not a fork of this one, and not something you'd ever push back here.
+- **This is local-only — nothing is backed up unless you make it happen.** `.git` here is yours alone; there's no remote, and `install.sh` doesn't set one up. `runtime/make-backup.sh` gives you an encrypted, verified off-machine backup in one command — it isn't run automatically. If this machine is the only copy, losing the machine loses everything.
 - **You can still pull future improvements after that.** `/perma-upgrade` reads the upstream URL from `runtime/.update-source`, a tracked file in the repo — it doesn't depend on the git remote you just removed.
 
 Then follow **[QUICKSTART.md](./QUICKSTART.md)** for the rest — mainly registering your first project, which is one sentence spoken to Claude.
