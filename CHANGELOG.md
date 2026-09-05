@@ -15,6 +15,22 @@ streams, never applied without your say-so (SPEC.md invariant 5).
 
 ## [Unreleased]
 
+## [1.0.9] — the origin story starts at the actual origin
+
+Wording only — no behaviour change, no migration notes.
+
+The "Why 'Permanence'" section previously opened at "object permanence" as if that
+were the tool's first name. It wasn't: this started life as **the brain** — the
+author's own daily-driver, in use and shared with colleagues for months before any
+of it was public — and only took the "object permanence" name (then Permanence)
+during the 2026-08-29 rebrand. The section now says so, and names the GitHub
+repo's own brief detour through `object-permanence` as exactly that: a few-day,
+repo-naming-only choice that never touched the install folder or product name,
+confirmed by checking `migrate-from-brain.sh`'s own header — it was always written
+to migrate `brain` → `permanence` directly, never via `object-permanence`, because
+nothing structural changed in that window. No new migration script needed as a
+result; the existing brain-migration path already covers the real case.
+
 ## [1.0.8] — README opening, revisited
 
 Wording only — no behaviour change, no migration notes.
