@@ -15,6 +15,29 @@ streams, never applied without your say-so (SPEC.md invariant 5).
 
 ## [Unreleased]
 
+## [1.1.1] — catching up the docs `v1.1.0` left stale
+
+Wording only — no behaviour change, no migration notes.
+
+`v1.1.0` shipped name-based project resolution but left several docs describing only the
+old cwd-only behavior:
+
+- **README's "The loops" section and diagram** described only the Claude Code hook-based
+  path (SessionStart/UserPromptSubmit), with no mention of the by-name alternative for
+  hookless harnesses (desktop apps) that `v1.1.0` actually built. Added a paragraph
+  explaining what happens instead when no hooks exist, pointing at QUICKSTART/TOOL-SUPPORT
+  for detail. The diagram itself is unchanged and still accurate for the path it shows.
+- **The `/perma-register` explanation** didn't mention name-only creation (picking and
+  creating a real folder from just a name, with no path at all).
+- **The command list** in "What's in here" was missing `/perma-list`.
+- **The machine-generated pointer blocks** (`runtime/claude-md-block.md`,
+  `runtime/agents-md-block.md`) — injected into `CLAUDE.md`/`AGENTS.md` for harnesses
+  without a SessionStart hook — still only described cwd-based resolution. This was the
+  most consequential gap: these are the literal instructions Claude Desktop/Cowork and
+  Tier 2 tools receive, and neither ever mentioned the by-name path built specifically for
+  a harness with no meaningful working directory. Both now say to ask for the project by
+  name instead when there's nothing to resolve from cwd.
+
 ## [1.1.0] — projects by name, not just by folder
 
 Desktop AI apps (Claude Desktop, ChatGPT Desktop, etc.) have no working-folder hook and no
