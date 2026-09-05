@@ -60,7 +60,7 @@ A **stream** is one ongoing concern — a project, an area of life — in its ow
 
 A folder is a stream exactly when it has a `PROJECT.md` — that's what the tooling discovers. (See `example/home/bathroom` and `example/home/kitchen`.)
 
-**Turning a project into a stream — `/perma-register`.** Say *"register this project"* (point it at the README if there is one) and Claude creates the stream, seeds it from the README, and adds one row to `_meta/REGISTRY.md`. That's the whole setup — no manual file-wrangling. You don't even have to remember to do it: open a new, unregistered project and start doing real work, and Claude will notice and offer to register it, once — you'll never be nagged twice about the same folder.
+**Turning a project into a stream — `/perma-register`.** Say *"register this project"* (point it at the README if there is one) and Claude creates the stream, seeds it from the README, and adds one row to `_meta/REGISTRY.md`. That's the whole setup — no manual file-wrangling. You don't even have to remember to do it: open a new, unregistered project and start doing real work, and Claude will notice and offer to register it, once — you'll never be nagged twice about the same folder. No project folder yet, just an idea and a name (a desktop-app conversation with nothing to point at)? Say *"start a new project called kitchen renovation"* — Permanence picks and creates the real folder itself.
 
 ## The four conventions (the real value)
 
@@ -81,12 +81,13 @@ flowchart LR
     F -.next session.-> A
 ```
 
-- **Write / read — how "automatic" actually works.** No daemon watches your conversation; it's two hooks plus one instruction, every session:
+- **Write / read — how "automatic" actually works, on Claude Code.** No daemon watches your conversation; it's two hooks plus one instruction, every session (the diagram above shows this path):
   1. **SessionStart** (`session-start.sh`) fires when you open a registered project — resolves the stream from `_meta/REGISTRY.md` and puts orientation into context.
   2. **UserPromptSubmit** (`session-load.sh`) fires on your first message — this is the *reliable* trigger. A passive SessionStart note is easy for a model to skim past; this one forces the instruction onto the very message Claude is about to answer, so it actually reads `PROJECT.md` / `QUESTIONS.md` / the `LOG.md` tail before responding.
   3. **That's also where the write side comes from.** What Claude reads includes the standing rule itself — *update this stream whenever something material shifts, without being asked.* There's no separate writer process: the same model, in the same conversation, keeps the files current because it was told to and follows through, the same way it follows any other instruction you give it.
 
   Worth being honest about the limit: this is instruction-following, not a guarantee — nothing mechanically enforces it. `/perma-consolidate` exists partly as the safety net for exactly that gap, catching drift if an update ever gets missed.
+- **No hooks available (desktop AI apps)?** There's no SessionStart/UserPromptSubmit to fire automatically, so the same two moments happen by asking instead: **`/perma-startup <name-or-path>`** does the SessionStart+UserPromptSubmit job manually — resolve the stream (by name or path, whichever you remember) and read it before answering — and **`/perma-shutdown`** does the write side, same as above. Which stream "material shifts" write to is whichever was resolved most recently in the conversation, until you switch. See [QUICKSTART.md](./QUICKSTART.md) §5 and [docs/TOOL-SUPPORT.md](./docs/TOOL-SUPPORT.md) for the concrete per-app detail.
 - **Consolidate** (`/perma-consolidate` → `/perma-consolidate-review`) — a periodic tidy: catches stale PROJECTs, closes aged inferences, dedupes. See `example/.consolidation/REPORT-example.md`.
 - **Orchestrate** (`/perma-orchestrate`) — finds ideas converging across streams you didn't connect. See `example/_meta/emergent.md`. (Only useful once you have a few streams — ignore it at first.)
 
@@ -111,7 +112,7 @@ These are deliberately off by default — the core (streams + the loops above) i
 
 | Path | What it is |
 |---|---|
-| `runtime/` | the machinery — `session-start.sh` (loads the right context per workspace), `generate-contents.sh`, `install.sh`, `nightly-consolidate.sh`, `schedule-task.sh` (cross-platform scheduling), `claude-md-block.md` + `agents-md-block.md`, and `commands/` (the `/perma-*` commands: help, brief, startup, shutdown, consolidate, consolidate-review, contents, orchestrate, register, register-group, upgrade). **Opt-in extras** (install prints how): cross-project **events** (`/perma-emit`), local semantic **search** (`/perma-search`, `runtime/search/`), and a weekly **cognitive-debt scan** (`cogdebt-scan.sh`). |
+| `runtime/` | the machinery — `session-start.sh` (loads the right context per workspace), `generate-contents.sh`, `install.sh`, `nightly-consolidate.sh`, `schedule-task.sh` (cross-platform scheduling), `claude-md-block.md` + `agents-md-block.md`, and `commands/` (the `/perma-*` commands: help, brief, startup, shutdown, list, consolidate, consolidate-review, contents, orchestrate, register, register-group, upgrade). **Opt-in extras** (install prints how): cross-project **events** (`/perma-emit`), local semantic **search** (`/perma-search`, `runtime/search/`), and a weekly **cognitive-debt scan** (`cogdebt-scan.sh`). |
 | `.githooks/` | a **people-rule pre-commit guard** + a post-commit inventory refresh |
 | `SPEC.md` | the system, harness-independently — data model, invariants, runtime contract |
 | `docs/` | reference for one specific situation, read only when you're in it: [`UPGRADE.md`](./docs/UPGRADE.md) (the `/perma-upgrade` walkthrough) and [`TOOL-SUPPORT.md`](./docs/TOOL-SUPPORT.md) (which AI tools are automated vs. manual, including Claude Desktop) |
